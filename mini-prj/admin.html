@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartBin - Admin Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Login Page -->
+    <div id="loginPage" class="login-container">
+        <div class="login-box">
+            <div class="login-header">
+                <div class="logo">🗑️</div>
+                <h1>Emptico</h1>
+                <p>Admin Dashboard Login</p>
+            </div>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" placeholder="admin@smartbin.io" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="Enter your password" required>
+                </div>
+                <button type="submit" class="login-btn">Sign In</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dashboard" class="dashboard">
+        <nav class="navbar">
+            <div class="navbar-brand">
+                <div class="icon">🗑️</div>
+                <span>SmartBin Admin</span>
+            </div>
+            <div class="user-info">
+                <span id="adminName">Admin User</span>
+                <button class="logout-btn" onclick="logout()">Logout</button>
+            </div>
+        </nav>
+
+        <div class="main-content">
+            <aside class="sidebar">
+                <div class="menu-item active" onclick="showPage('overview')">
+                    📊 Dashboard Overview
+                </div>
+                <div class="menu-item" onclick="showPage('bins')">
+                    🗑️ Smart Bins <span class="badge">248</span>
+                </div>
+                <div class="menu-item" onclick="showPage('collections')">
+                    🚚 Collections
+                </div>
+                <div class="menu-item" onclick="showPage('routes')">
+                    🗺️ Routes
+                </div>
+                <div class="menu-item" onclick="showPage('users')">
+                    👥 Users
+                </div>
+                <div class="menu-item" onclick="showPage('analytics')">
+                    📈 Analytics
+                </div>
+                <div class="menu-item" onclick="showPage('requests')">
+                    🔔 Requests <span class="badge">3</span>
+                </div>
+            </aside>
+
+            <main class="content-area">
+                <!-- Overview Page -->
+                <div id="overviewPage" class="page">
+                    <div class="page-header">
+                        <h2>Dashboard Overview</h2>
+                        <p>Monitor and manage your smart waste collection system</p>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <h3>Total Smart Bins</h3>
+                            <div class="value">248</div>
+                            <div class="change">+12 this month</div>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Active Collections</h3>
+                            <div class="value">15</div>
+                            <div class="change">+3 today</div>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Total Users</h3>
+                            <div class="value">1,847</div>
+                            <div class="change">+89 this week</div>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Waste Collected</h3>
+                            <div class="value">12.4T</div>
+                            <div class="change">+2.1T this month</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3>Recent Smart Bin Activity</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Bin ID</th>
+                                    <th>Location</th>
+                                    <th>Fill Level</th>
+                                    <th>Status</th>
+                                    <th>Last Updated</th>
+                                </tr>
+                            </thead>
+                            <tbody id="binActivityTable">
+                                <tr>
+                                    <td>BIN-001</td>
+                                    <td>Main Street, Zone A</td>
+                                    <td>87%</td>
+                                    <td><span class="status online">Online</span></td>
+                                    <td>2 mins ago</td>
+                                </tr>
+                                <tr>
+                                    <td>BIN-045</td>
+                                    <td>Park Avenue, Zone B</td>
+                                    <td>92%</td>
+                                    <td><span class="status online">Online</span></td>
+                                    <td>5 mins ago</td>
+                                </tr>
+                                <tr>
+                                    <td>BIN-128</td>
+                                    <td>City Center, Zone C</td>
+                                    <td>45%</td>
+                                    <td><span class="status offline">Offline</span></td>
+                                    <td>1 hour ago</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Smart Bins Page -->
+                <div id="binsPage" class="page hidden">
+                    <div class="page-header">
+                        <h2>Smart Bins Management</h2>
+                        <p>Monitor all smart bins in the system</p>
+                    </div>
+
+                    <div class="card">
+                        <h3>All Smart Bins (248)</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Bin ID</th>
+                                    <th>Location</th>
+                                    <th>Type</th>
+                                    <th>Fill Level</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>BIN-001</td>
+                                    <td>Main Street, Zone A</td>
+                                    <td>Recyclable</td>
+                                    <td>87%</td>
+                                    <td><span class="status online">Online</span></td>
+                                    <td>
+                                        <button class="btn btn-primary">View</button>
+                                        <button class="btn btn-success">Collect</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>BIN-002</td>
+                                    <td>Park Avenue, Zone B</td>
+                                    <td>General Waste</td>
+                                    <td>34%</td>
+                                    <td><span class="status online">Online</span></td>
+                                    <td>
+                                        <button class="btn btn-primary">View</button>
+                                        <button class="btn btn-success">Collect</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>BIN-003</td>
+                                    <td>Shopping Mall, Zone C</td>
+                                    <td>Organic</td>
+                                    <td>78%</td>
+                                    <td><span class="status online">Online</span></td>
+                                    <td>
+                                        <button class="btn btn-primary">View</button>
+                                        <button class="btn btn-success">Collect</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Users Page -->
+                <div id="usersPage" class="page hidden">
+                    <div class="page-header">
+                        <h2>User Management</h2>
+                        <p>Manage users and collectors</p>
+                    </div>
+
+                    <div class="card">
+                        <h3>System Users</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>John Collector</td>
+                                    <td>john@smartbin.io</td>
+                                    <td>Collector</td>
+                                    <td><span class="status online">Active</span></td>
+                                    <td>
+                                        <button class="btn btn-primary">Edit</button>
+                                        <button class="btn btn-danger">Delete</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Sarah Admin</td>
+                                    <td>sarah@smartbin.io</td>
+                                    <td>Administrator</td>
+                                    <td><span class="status online">Active</span></td>
+                                    <td>
+                                        <button class="btn btn-primary">Edit</button>
+                                        <button class="btn btn-danger">Delete</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Mike </td>
+                                    <td>mike@smartbin.io</td>
+                                    <td>Collector</td>
+                                    <td><span class="status online">Active</span></td>
+                                    <td>
+                                        <button class="btn btn-primary">Edit</button>
+                                        <button class="btn btn-danger">Delete</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Requests Page -->
+                <div id="requestsPage" class="page hidden">
+                    <div class="page-header">
+                        <h2>Collection Requests</h2>
+                        <p>Monitor and manage collection requests</p>
+                    </div>
+
+                    <div class="card">
+                        <h3>Pending Requests (3)</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Request ID</th>
+                                    <th>Bin Location</th>
+                                    <th>Priority</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>REQ-234</td>
+                                    <td>Main Street, Zone A</td>
+                                    <td>High</td>
+                                    <td><span class="status pending">Pending</span></td>
+                                    <td>
+                                        <button class="btn btn-success">Assign</button>
+                                        <button class="btn btn-danger">Cancel</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>REQ-235</td>
+                                    <td>Park Avenue, Zone B</td>
+                                    <td>Medium</td>
+                                    <td><span class="status pending">Pending</span></td>
+                                    <td>
+                                        <button class="btn btn-success">Assign</button>
+                                        <button class="btn btn-danger">Cancel</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>REQ-236</td>
+                                    <td>City Center, Zone C</td>
+                                    <td>Low</td>
+                                    <td><span class="status pending">Pending</span></td>
+                                    <td>
+                                        <button class="btn btn-success">Assign</button>
+                                        <button class="btn btn-danger">Cancel</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
