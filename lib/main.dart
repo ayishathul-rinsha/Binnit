@@ -8,6 +8,7 @@ import 'providers/onboarding_provider.dart';
 import 'routes/app_routes.dart';
 import 'utils/app_theme.dart';
 import 'utils/constants.dart';
+import 'l10n/app_localizations.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,6 +40,7 @@ class WasteCollectorApp extends StatelessWidget {
                 .map((lang) => Locale(lang.code))
                 .toList(),
             localizationsDelegates: const [
+              AppLocalizations.delegate,
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,

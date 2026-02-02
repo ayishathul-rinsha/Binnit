@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/locale_provider.dart';
 import '../../utils/constants.dart';
 import '../../routes/app_routes.dart';
+import '../../l10n/app_localizations.dart';
 
 /// Language selection screen
 class LanguageScreen extends StatefulWidget {
@@ -15,6 +16,19 @@ class LanguageScreen extends StatefulWidget {
 class _LanguageScreenState extends State<LanguageScreen> {
   String _selectedLanguage = 'en';
 
+  @override
+  void initState() {
+    super.initState();
+    // Get current locale
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final localeProvider =
+          Provider.of<LocaleProvider>(context, listen: false);
+      setState(() {
+        _selectedLanguage = localeProvider.locale.languageCode;
+      });
+    });
+  }
+
   Future<void> _continue() async {
     final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
     await localeProvider.setLocale(_selectedLanguage);
@@ -26,6 +40,8 @@ class _LanguageScreenState extends State<LanguageScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -35,8 +51,6 @@ class _LanguageScreenState extends State<LanguageScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 40),
-
-              // Header
               Container(
                 width: 60,
                 height: 60,
@@ -51,10 +65,9 @@ class _LanguageScreenState extends State<LanguageScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-
-              const Text(
-                'Choose Language',
-                style: TextStyle(
+              Text(
+                l10n.chooseLanguage,
+                style: const TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.w700,
                   color: AppColors.textPrimary,
@@ -62,16 +75,13 @@ class _LanguageScreenState extends State<LanguageScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Select your preferred language for the app',
+                l10n.selectLanguage,
                 style: TextStyle(
                   fontSize: 15,
                   color: AppColors.textSecondary,
                 ),
               ),
-
               const SizedBox(height: 32),
-
-              // Language grid
               Expanded(
                 child: GridView.builder(
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -90,6 +100,9 @@ class _LanguageScreenState extends State<LanguageScreen> {
                         setState(() {
                           _selectedLanguage = language.code;
                         });
+                        // Update locale immediately to show preview
+                        Provider.of<LocaleProvider>(context, listen: false)
+                            .setLocale(language.code);
                       },
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
@@ -143,10 +156,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
                   },
                 ),
               ),
-
               const SizedBox(height: 20),
-
-              // Continue button
               SizedBox(
                 width: double.infinity,
                 height: 54,
@@ -160,9 +170,9 @@ class _LanguageScreenState extends State<LanguageScreen> {
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-                  child: const Text(
-                    'Continue',
-                    style: TextStyle(
+                  child: Text(
+                    l10n.continueText,
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),

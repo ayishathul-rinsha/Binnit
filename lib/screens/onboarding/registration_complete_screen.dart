@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../utils/constants.dart';
 import '../../routes/app_routes.dart';
+import '../../l10n/app_localizations.dart';
 
 /// Registration complete screen
 class RegistrationCompleteScreen extends StatelessWidget {
@@ -8,6 +9,8 @@ class RegistrationCompleteScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -17,8 +20,6 @@ class RegistrationCompleteScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Spacer(),
-
-              // Success icon
               Container(
                 width: 100,
                 height: 100,
@@ -33,10 +34,9 @@ class RegistrationCompleteScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 32),
-
-              const Text(
-                'Application Submitted!',
-                style: TextStyle(
+              Text(
+                l10n.applicationSubmitted,
+                style: const TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.w700,
                   color: AppColors.textPrimary,
@@ -44,9 +44,8 @@ class RegistrationCompleteScreen extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 12),
-
               Text(
-                'Thank you for registering as a rider.\nYour application is under review.',
+                l10n.thankYouRegistering,
                 style: TextStyle(
                   fontSize: 15,
                   color: AppColors.textSecondary,
@@ -54,10 +53,7 @@ class RegistrationCompleteScreen extends StatelessWidget {
                 ),
                 textAlign: TextAlign.center,
               ),
-
               const SizedBox(height: 40),
-
-              // Status card
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -83,22 +79,22 @@ class RegistrationCompleteScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 14),
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Application Status',
-                                style: TextStyle(
+                                l10n.applicationStatus,
+                                style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                   color: AppColors.textPrimary,
                                 ),
                               ),
-                              SizedBox(height: 2),
+                              const SizedBox(height: 2),
                               Text(
-                                'Pending Review',
-                                style: TextStyle(
+                                l10n.pendingReview,
+                                style: const TextStyle(
                                   fontSize: 13,
                                   color: AppColors.textSecondary,
                                 ),
@@ -109,9 +105,9 @@ class RegistrationCompleteScreen extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    const Text(
-                      'We\'ll notify you once your application is approved. This usually takes 1-2 business days.',
-                      style: TextStyle(
+                    Text(
+                      l10n.reviewTime,
+                      style: const TextStyle(
                         fontSize: 13,
                         color: AppColors.textSecondary,
                         height: 1.5,
@@ -120,10 +116,7 @@ class RegistrationCompleteScreen extends StatelessWidget {
                   ],
                 ),
               ),
-
               const Spacer(),
-
-              // Go to login button
               SizedBox(
                 width: double.infinity,
                 height: 54,
@@ -143,9 +136,9 @@ class RegistrationCompleteScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-                  child: const Text(
-                    'Go to Login',
-                    style: TextStyle(
+                  child: Text(
+                    l10n.goToLogin,
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),

@@ -6,6 +6,7 @@ import '../../routes/app_routes.dart';
 import '../../utils/constants.dart';
 import '../../utils/helpers.dart';
 import '../../widgets/widgets.dart';
+import '../../l10n/app_localizations.dart';
 
 /// Login screen - Warm, welcoming, balanced design
 class LoginScreen extends StatefulWidget {
@@ -63,6 +64,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -80,7 +83,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 50),
 
                       // Header with logo
-                      _buildHeader(),
+                      _buildHeader(l10n),
 
                       const SizedBox(height: 48),
 
@@ -95,7 +98,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Welcome back',
+                              l10n.welcomeBack,
                               style: TextStyle(
                                 fontSize: 26,
                                 fontWeight: FontWeight.w700,
@@ -104,7 +107,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              'Sign in to continue making a difference',
+                              l10n.signInContinue,
                               style: TextStyle(
                                 fontSize: 14,
                                 color: AppColors.textSecondary,
@@ -119,8 +122,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       // Email field
                       _buildTextField(
                         controller: _emailController,
-                        label: 'Email address',
-                        hint: 'Enter your email',
+                        label: l10n.email,
+                        hint: l10n.email,
                         icon: Icons.mail_outline_rounded,
                         keyboardType: TextInputType.emailAddress,
                         validator: ValidationHelper.validateEmail,
@@ -131,8 +134,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       // Password field
                       _buildTextField(
                         controller: _passwordController,
-                        label: 'Password',
-                        hint: 'Enter your password',
+                        label: l10n.password,
+                        hint: l10n.password,
                         icon: Icons.lock_outline_rounded,
                         obscureText: _obscurePassword,
                         validator: ValidationHelper.validatePassword,
@@ -165,9 +168,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             foregroundColor: AppColors.secondary,
                             padding: EdgeInsets.zero,
                           ),
-                          child: const Text(
-                            'Forgot password?',
-                            style: TextStyle(
+                          child: Text(
+                            l10n.forgotPassword,
+                            style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
                             ),
@@ -202,9 +205,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                     color: Colors.white,
                                   ),
                                 )
-                              : const Text(
-                                  'Sign In',
-                                  style: TextStyle(
+                              : Text(
+                                  l10n.signIn,
+                                  style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -226,7 +229,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                             child: Text(
-                              'New here?',
+                              l10n.newHere,
                               style: TextStyle(
                                 fontSize: 13,
                                 color: AppColors.textSecondary,
@@ -262,9 +265,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               borderRadius: BorderRadius.circular(14),
                             ),
                           ),
-                          child: const Text(
-                            'Create an Account',
-                            style: TextStyle(
+                          child: Text(
+                            l10n.createAccount,
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
                             ),
@@ -284,7 +287,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(AppLocalizations l10n) {
     return Row(
       children: [
         Container(
@@ -307,7 +310,7 @@ class _LoginScreenState extends State<LoginScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              AppStrings.appName,
+              l10n.appName,
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w700,

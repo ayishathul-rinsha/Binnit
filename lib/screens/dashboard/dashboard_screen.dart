@@ -6,6 +6,7 @@ import '../../providers/earnings_provider.dart';
 import '../../utils/constants.dart';
 import '../../utils/helpers.dart';
 import '../../widgets/widgets.dart';
+import '../../l10n/app_localizations.dart';
 
 /// Dashboard - Warm, earthy, balanced creativity
 class DashboardScreen extends StatefulWidget {
@@ -156,7 +157,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(width: 12),
           Text(
-            AppStrings.dashboard,
+            AppLocalizations.of(context).dashboard,
             style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -185,7 +186,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   fontWeight: FontWeight.w500,
                   color: Colors.white.withOpacity(0.7),
                 ),
-                child: Text(isOnline ? 'You are online' : 'You are offline'),
+                child: Text(isOnline
+                    ? AppLocalizations.of(context).youAreOnline
+                    : AppLocalizations.of(context).youAreOffline),
               ),
               const SizedBox(height: 14),
 
@@ -270,7 +273,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   fontWeight: FontWeight.w700,
                   color: isOnline ? AppColors.accent : Colors.white,
                 ),
-                child: Text(isOnline ? 'Online' : 'Offline'),
+                child: Text(isOnline
+                    ? AppLocalizations.of(context).online
+                    : AppLocalizations.of(context).offline),
               ),
             ],
           ),
@@ -304,7 +309,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    "Today's Earnings",
+                    AppLocalizations.of(context).todaysEarnings,
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.85),
                       fontSize: 14,
@@ -320,8 +325,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       color: Colors.white.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Text(
-                      'View details',
+                    child: Text(
+                      AppLocalizations.of(context).viewDetails,
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 11,
@@ -351,7 +356,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 children: [
                   Expanded(
                     child: _buildEarningMini(
-                      'Weekly',
+                      AppLocalizations.of(context).weekly,
                       CurrencyHelper.formatCompact(
                           earnings?.weeklyEarnings ?? 0),
                     ),
@@ -363,7 +368,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   Expanded(
                     child: _buildEarningMini(
-                      'Monthly',
+                      AppLocalizations.of(context).monthly,
                       CurrencyHelper.formatCompact(
                           earnings?.monthlyEarnings ?? 0),
                     ),
@@ -498,7 +503,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Quick Actions',
+          AppLocalizations.of(context).quickActions,
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -511,7 +516,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Expanded(
               child: _buildActionButton(
                 icon: Icons.list_alt_rounded,
-                label: 'Requests',
+                label: AppLocalizations.of(context).requests,
                 color: AppColors.primary,
               ),
             ),
@@ -519,7 +524,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Expanded(
               child: _buildActionButton(
                 icon: Icons.history_rounded,
-                label: 'History',
+                label: AppLocalizations.of(context).history,
                 color: AppColors.textSecondary,
               ),
             ),
@@ -527,7 +532,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Expanded(
               child: _buildActionButton(
                 icon: Icons.account_balance_wallet_outlined,
-                label: 'Earnings',
+                label: AppLocalizations.of(context).earnings,
                 color: AppColors.secondary,
               ),
             ),
@@ -588,7 +593,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Active Pickups',
+                  AppLocalizations.of(context).activePickups,
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -670,9 +675,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
           const SizedBox(height: 18),
-          const Text(
-            'No active pickups',
-            style: TextStyle(
+          Text(
+            AppLocalizations.of(context).noActivePickups,
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
               color: AppColors.textPrimary,
@@ -680,7 +685,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            'Stay online to receive new pickup requests',
+            AppLocalizations.of(context).stayOnline,
             style: TextStyle(
               fontSize: 13,
               color: AppColors.textSecondary,

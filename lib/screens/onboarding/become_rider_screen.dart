@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/onboarding_provider.dart';
 import '../../utils/constants.dart';
 import '../../routes/app_routes.dart';
+import '../../l10n/app_localizations.dart';
 
 /// Become a Rider registration screen
 class BecomeRiderScreen extends StatefulWidget {
@@ -21,7 +22,6 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
   final _phoneController = TextEditingController();
   final _otpController = TextEditingController();
   bool _otpSent = false;
-  bool _phoneVerified = false;
 
   // Step 2: Personal details
   final _nameController = TextEditingController();
@@ -85,7 +85,6 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
     setState(() => _isLoading = true);
     await Future.delayed(const Duration(milliseconds: 800));
     setState(() {
-      _phoneVerified = true;
       _isLoading = false;
     });
     _nextStep();
@@ -96,7 +95,6 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
 
     setState(() => _isLoading = true);
 
-    // Simulate API call
     await Future.delayed(const Duration(seconds: 2));
 
     final onboardingProvider = Provider.of<OnboardingProvider>(
@@ -113,6 +111,8 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -126,8 +126,8 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
               )
             : null,
         title: Text(
-          'Become a Rider',
-          style: TextStyle(
+          l10n.becomeRider,
+          style: const TextStyle(
             color: AppColors.textPrimary,
             fontWeight: FontWeight.w600,
           ),
@@ -136,21 +136,18 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
       ),
       body: Column(
         children: [
-          // Progress indicator
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: _buildProgressBar(),
           ),
-
-          // Steps
           Expanded(
             child: PageView(
               controller: _pageController,
               physics: const NeverScrollableScrollPhysics(),
               children: [
-                _buildPhoneStep(),
-                _buildPersonalStep(),
-                _buildWorkStep(),
+                _buildPhoneStep(l10n),
+                _buildPersonalStep(l10n),
+                _buildWorkStep(l10n),
               ],
             ),
           ),
@@ -165,7 +162,6 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
       child: Row(
         children: List.generate(3, (index) {
           final isActive = index <= _currentStep;
-          final isComplete = index < _currentStep;
 
           return Expanded(
             child: Row(
@@ -188,15 +184,15 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
     );
   }
 
-  Widget _buildPhoneStep() {
+  Widget _buildPhoneStep(AppLocalizations l10n) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Phone Verification',
-            style: TextStyle(
+          Text(
+            l10n.phoneVerification,
+            style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w700,
               color: AppColors.textPrimary,
@@ -204,48 +200,39 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Enter your phone number to get started',
+            l10n.enterPhone,
             style: TextStyle(
               fontSize: 15,
               color: AppColors.textSecondary,
             ),
           ),
           const SizedBox(height: 32),
-
-          // Phone field
           _buildTextField(
             controller: _phoneController,
-            label: 'Phone Number',
-            hint: 'Enter 10-digit number',
+            label: l10n.phoneNumber,
+            hint: '10-digit number',
             prefix: '+91 ',
             keyboardType: TextInputType.phone,
             enabled: !_otpSent,
           ),
-
           if (_otpSent) ...[
             const SizedBox(height: 24),
-
-            // OTP field
             _buildTextField(
               controller: _otpController,
-              label: 'OTP Code',
-              hint: 'Enter 6-digit OTP',
+              label: 'OTP',
+              hint: '6-digit OTP',
               keyboardType: TextInputType.number,
             ),
-
             const SizedBox(height: 12),
-
             TextButton(
               onPressed: _sendOtp,
               child: Text(
-                'Resend OTP',
+                l10n.resendOtp,
                 style: TextStyle(color: AppColors.primaryLight),
               ),
             ),
           ],
-
           const SizedBox(height: 32),
-
           SizedBox(
             width: double.infinity,
             height: 54,
@@ -269,7 +256,7 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
                       ),
                     )
                   : Text(
-                      _otpSent ? 'Verify OTP' : 'Send OTP',
+                      _otpSent ? l10n.verifyOtp : l10n.sendOtp,
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -282,15 +269,15 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
     );
   }
 
-  Widget _buildPersonalStep() {
+  Widget _buildPersonalStep(AppLocalizations l10n) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Personal Details',
-            style: TextStyle(
+          Text(
+            l10n.personalDetails,
+            style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w700,
               color: AppColors.textPrimary,
@@ -298,7 +285,7 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Tell us about yourself',
+            l10n.tellAboutYou,
             style: TextStyle(
               fontSize: 15,
               color: AppColors.textSecondary,
@@ -307,28 +294,28 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
           const SizedBox(height: 32),
           _buildTextField(
             controller: _nameController,
-            label: 'Full Name',
-            hint: 'Enter your full name',
+            label: l10n.fullName,
+            hint: l10n.fullName,
           ),
           const SizedBox(height: 20),
           _buildTextField(
             controller: _emailController,
-            label: 'Email Address',
-            hint: 'Enter your email',
+            label: l10n.emailAddress,
+            hint: l10n.email,
             keyboardType: TextInputType.emailAddress,
           ),
           const SizedBox(height: 20),
           _buildTextField(
             controller: _addressController,
-            label: 'Address',
-            hint: 'Enter your address',
+            label: l10n.address,
+            hint: l10n.address,
             maxLines: 2,
           ),
           const SizedBox(height: 20),
           _buildTextField(
             controller: _cityController,
-            label: 'City',
-            hint: 'Enter your city',
+            label: l10n.city,
+            hint: l10n.city,
           ),
           const SizedBox(height: 32),
           SizedBox(
@@ -344,9 +331,9 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
                   borderRadius: BorderRadius.circular(14),
                 ),
               ),
-              child: const Text(
-                'Continue',
-                style: TextStyle(
+              child: Text(
+                l10n.continueText,
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                 ),
@@ -358,15 +345,15 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
     );
   }
 
-  Widget _buildWorkStep() {
+  Widget _buildWorkStep(AppLocalizations l10n) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Work Details',
-            style: TextStyle(
+          Text(
+            l10n.workDetails,
+            style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w700,
               color: AppColors.textPrimary,
@@ -374,79 +361,67 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Tell us about your work preferences',
+            l10n.workPreferences,
             style: TextStyle(
               fontSize: 15,
               color: AppColors.textSecondary,
             ),
           ),
           const SizedBox(height: 32),
-
-          // Vehicle type
-          const Text(
-            'Vehicle Type',
-            style: TextStyle(
+          Text(
+            l10n.vehicleType,
+            style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
               color: AppColors.textPrimary,
             ),
           ),
           const SizedBox(height: 12),
-
           Row(
             children: [
               _buildVehicleOption(
-                  'two_wheeler', 'Two Wheeler', Icons.two_wheeler),
+                  'two_wheeler', l10n.twoWheeler, Icons.two_wheeler),
               const SizedBox(width: 12),
               _buildVehicleOption(
-                  'three_wheeler', 'Three Wheeler', Icons.electric_rickshaw),
+                  'three_wheeler', l10n.threeWheeler, Icons.electric_rickshaw),
               const SizedBox(width: 12),
-              _buildVehicleOption('truck', 'Truck', Icons.local_shipping),
+              _buildVehicleOption('truck', l10n.truck, Icons.local_shipping),
             ],
           ),
-
           const SizedBox(height: 24),
-
           _buildTextField(
             controller: _experienceController,
-            label: 'Years of Experience',
-            hint: 'e.g., 2 years',
+            label: l10n.experience,
+            hint: 'e.g., 2',
           ),
-
           const SizedBox(height: 24),
-
-          // License checkbox
           CheckboxListTile(
             value: _hasLicense,
             onChanged: (value) {
               setState(() => _hasLicense = value ?? false);
             },
-            title: const Text(
-              'I have a valid driving license',
-              style: TextStyle(fontSize: 14),
+            title: Text(
+              l10n.hasLicense,
+              style: const TextStyle(fontSize: 14),
             ),
             controlAffinity: ListTileControlAffinity.leading,
             contentPadding: EdgeInsets.zero,
             activeColor: AppColors.primary,
           ),
-
-          // Terms checkbox
           CheckboxListTile(
             value: _termsAccepted,
             onChanged: (value) {
               setState(() => _termsAccepted = value ?? false);
             },
-            title: const Text(
-              'I agree to the Terms & Conditions',
-              style: TextStyle(fontSize: 14),
+            title: Text(
+              l10n.agreeTerms,
+              style: const TextStyle(fontSize: 14),
             ),
             controlAffinity: ListTileControlAffinity.leading,
             contentPadding: EdgeInsets.zero,
             activeColor: AppColors.primary,
           ),
-
           const SizedBox(height: 32),
-
           SizedBox(
             width: double.infinity,
             height: 54,
@@ -471,9 +446,9 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
                         color: Colors.white,
                       ),
                     )
-                  : const Text(
-                      'Submit Application',
-                      style: TextStyle(
+                  : Text(
+                      l10n.submitApplication,
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/onboarding_provider.dart';
 import '../../utils/constants.dart';
 import '../../routes/app_routes.dart';
+import '../../l10n/app_localizations.dart';
 
 /// Permissions screen - Request location, background location, notifications
 class PermissionsScreen extends StatefulWidget {
@@ -19,10 +20,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
 
   Future<void> _requestLocation() async {
     setState(() => _isLoading = true);
-
-    // Simulating permission request - in real app use permission_handler
     await Future.delayed(const Duration(milliseconds: 500));
-
     setState(() {
       _locationGranted = true;
       _isLoading = false;
@@ -31,9 +29,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
 
   Future<void> _requestNotifications() async {
     setState(() => _isLoading = true);
-
     await Future.delayed(const Duration(milliseconds: 500));
-
     setState(() {
       _notificationGranted = true;
       _isLoading = false;
@@ -56,6 +52,8 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -65,8 +63,6 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 40),
-
-              // Header
               Container(
                 width: 60,
                 height: 60,
@@ -81,10 +77,9 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-
-              const Text(
-                'App Permissions',
-                style: TextStyle(
+              Text(
+                l10n.appPermissions,
+                style: const TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.w700,
                   color: AppColors.textPrimary,
@@ -92,41 +87,32 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'We need a few permissions to provide you the best experience',
+                l10n.permissionsDesc,
                 style: TextStyle(
                   fontSize: 15,
                   color: AppColors.textSecondary,
                   height: 1.5,
                 ),
               ),
-
               const SizedBox(height: 40),
-
-              // Location permission
               _buildPermissionCard(
                 icon: Icons.location_on_rounded,
-                title: 'Location Access',
-                description:
-                    'Required to find nearby pickup requests and navigate to locations',
+                title: l10n.locationAccess,
+                description: l10n.locationDesc,
                 isGranted: _locationGranted,
                 onRequest: _requestLocation,
+                allowText: l10n.allow,
               ),
-
               const SizedBox(height: 16),
-
-              // Notification permission
               _buildPermissionCard(
                 icon: Icons.notifications_rounded,
-                title: 'Push Notifications',
-                description:
-                    'Get notified about new pickup requests and important updates',
+                title: l10n.pushNotifications,
+                description: l10n.notificationDesc,
                 isGranted: _notificationGranted,
                 onRequest: _requestNotifications,
+                allowText: l10n.allow,
               ),
-
               const Spacer(),
-
-              // Continue button
               SizedBox(
                 width: double.infinity,
                 height: 54,
@@ -150,24 +136,21 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                             color: Colors.white,
                           ),
                         )
-                      : const Text(
-                          'Continue',
-                          style: TextStyle(
+                      : Text(
+                          l10n.continueText,
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                 ),
               ),
-
               const SizedBox(height: 16),
-
-              // Skip for now
               Center(
                 child: TextButton(
                   onPressed: _continue,
                   child: Text(
-                    'Skip for now',
+                    l10n.skipForNow,
                     style: TextStyle(
                       color: AppColors.textSecondary,
                       fontSize: 14,
@@ -188,6 +171,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
     required String description,
     required bool isGranted,
     required VoidCallback onRequest,
+    required String allowText,
   }) {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -247,7 +231,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
             Container(
               width: 32,
               height: 32,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: AppColors.primaryLight,
                 shape: BoxShape.circle,
               ),
@@ -269,9 +253,9 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
-              child: const Text(
-                'Allow',
-                style: TextStyle(
+              child: Text(
+                allowText,
+                style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                 ),

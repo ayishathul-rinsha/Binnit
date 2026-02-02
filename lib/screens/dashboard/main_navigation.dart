@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../utils/constants.dart';
+import '../../l10n/app_localizations.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../pickups/pickup_requests_screen.dart';
 import '../pickups/active_pickups_screen.dart';
@@ -25,31 +26,36 @@ class _MainNavigationState extends State<MainNavigation> {
     ProfileScreen(),
   ];
 
-  final List<_NavItem> _navItems = const [
-    _NavItem(
-        icon: Icons.home_outlined,
-        activeIcon: Icons.home_rounded,
-        label: 'Home'),
-    _NavItem(
-        icon: Icons.list_alt_outlined,
-        activeIcon: Icons.list_alt_rounded,
-        label: 'Requests'),
-    _NavItem(
-        icon: Icons.local_shipping_outlined,
-        activeIcon: Icons.local_shipping_rounded,
-        label: 'Active'),
-    _NavItem(
-        icon: Icons.account_balance_wallet_outlined,
-        activeIcon: Icons.account_balance_wallet_rounded,
-        label: 'Earnings'),
-    _NavItem(
-        icon: Icons.person_outline,
-        activeIcon: Icons.person_rounded,
-        label: 'Profile'),
-  ];
+  List<_NavItem> _getNavItems(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return [
+      _NavItem(
+          icon: Icons.home_outlined,
+          activeIcon: Icons.home_rounded,
+          label: l10n.home),
+      _NavItem(
+          icon: Icons.list_alt_outlined,
+          activeIcon: Icons.list_alt_rounded,
+          label: l10n.requests),
+      _NavItem(
+          icon: Icons.local_shipping_outlined,
+          activeIcon: Icons.local_shipping_rounded,
+          label: l10n.active),
+      _NavItem(
+          icon: Icons.account_balance_wallet_outlined,
+          activeIcon: Icons.account_balance_wallet_rounded,
+          label: l10n.earnings),
+      _NavItem(
+          icon: Icons.person_outline,
+          activeIcon: Icons.person_rounded,
+          label: l10n.profile),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
+    final navItems = _getNavItems(context);
+
     return Scaffold(
       body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: Container(
@@ -68,8 +74,8 @@ class _MainNavigationState extends State<MainNavigation> {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: List.generate(_navItems.length, (index) {
-                final item = _navItems[index];
+              children: List.generate(navItems.length, (index) {
+                final item = navItems[index];
                 final isSelected = _currentIndex == index;
 
                 return GestureDetector(
