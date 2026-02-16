@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import 'schedule_pickup_screen.dart';
 import 'smart_bin_screen.dart';
+import 'history_screen.dart';
 import 'marketplace_screen.dart';
 import 'subscription_screen.dart';
 import 'pickup_details_screen.dart';
+import 'pickup_tracking_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -22,6 +24,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     const _HomeDashboard(),
     const SchedulePickupScreen(),
     const SmartBinScreen(),
+    const HistoryScreen(),
     const MarketplaceScreen(),
   ];
 
@@ -94,7 +97,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               _buildNavItem(Icons.home_rounded, Icons.home_outlined, 'Home', 0),
               _buildNavItem(Icons.local_shipping_rounded, Icons.local_shipping_outlined, 'Pickup', 1),
               _buildNavItem(Icons.delete_rounded, Icons.delete_outline_rounded, 'Smart Bin', 2),
-              _buildNavItem(Icons.storefront_rounded, Icons.storefront_outlined, 'Market', 3),
+              _buildNavItem(Icons.history_rounded, Icons.history, 'History', 3),
+              _buildNavItem(Icons.storefront_rounded, Icons.storefront_outlined, 'Market', 4),
             ],
           ),
         ),
@@ -746,7 +750,8 @@ class _HomeDashboard extends StatelessWidget {
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: () {},
+                        onPressed: () => Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => const PickupTrackingScreen())),
                         icon: const Icon(Icons.location_on_outlined, size: 18),
                         label: const Text('Track'),
                         style: ElevatedButton.styleFrom(

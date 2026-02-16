@@ -118,10 +118,28 @@ class _SmartBinScreenState extends State<SmartBinScreen>
   }
 
   Widget _buildAppBar() {
+    final canPop = ModalRoute.of(context)?.canPop ?? false;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+      padding: const EdgeInsets.fromLTRB(8, 16, 20, 0),
       child: Row(
         children: [
+          if (canPop) ...[
+            IconButton(
+              onPressed: () => Navigator.pop(context),
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.inputBackground,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.dividerColor.withOpacity(0.3)),
+                ),
+                child: const Icon(Icons.arrow_back_ios_new_rounded,
+                    size: 18, color: AppTheme.textPrimary),
+              ),
+            ),
+            const SizedBox(width: 4),
+          ] else
+            const SizedBox(width: 12),
           const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
