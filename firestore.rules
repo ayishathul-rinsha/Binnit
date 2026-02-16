@@ -1,0 +1,127 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper: Check if user is the document owner
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // Helper: Check if user is admin
+    function isAdmin() {
+      return exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      allow create: if isAuthenticated() && isOwner(userId);
+      allow update: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      allow delete: if isAuthenticated() && (isOwner(userId) || isAdmin());
+
+      // Addresses subcollection
+      match /addresses/{addressId} {
+        allow read, write: if isAuthenticated() && isOwner(userId);
+      }
+    }
+
+    // Collectors collection
+    match /collectors/{collectorId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isOwner(collectorId);
+      allow update: if isAuthenticated() && (isOwner(collectorId) || isAdmin());
+      allow delete: if isAuthenticated() && isAdmin();
+    }
+
+    // Admins collection
+    match /admins/{adminId} {
+      allow read: if isAuthenticated() && isOwner(adminId);
+      allow write: if false; // Admins are managed manually or via Admin SDK
+    }
+
+    // Pickup requests
+    match /pickupRequests/{pickupId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if isAuthenticated() && isAdmin();
+    }
+
+    // Payments
+    match /payments/{paymentId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if false;
+    }
+
+    // Wallet
+    match /wallet/{userId} {
+      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      allow write: if false; // Managed by backend only
+    }
+
+    // Marketplace rates (public read)
+    match /marketplaceRates/{rateId} {
+      allow read: if true;
+      allow write: if isAuthenticated() && isAdmin();
+    }
+
+    // Marketplace orders
+    match /marketplaceOrders/{orderId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // Subscription plans (public read)
+    match /subscriptionPlans/{planId} {
+      allow read: if true;
+      allow write: if isAuthenticated() && isAdmin();
+    }
+
+    // Subscriptions
+    match /subscriptions/{subId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if false;
+    }
+
+    // Admin stats (admin only)
+    match /adminStats/{docId} {
+      allow read: if isAuthenticated() && isAdmin();
+      allow write: if false; // Managed by backend only
+    }
+
+    // Bins (placeholder for smart bin integration)
+    match /bins/{binId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isAdmin();
+    }
+
+    // Helper: Check if user is a collector
+    function isCollector() {
+      return exists(/databases/$(database)/documents/collectors/$(request.auth.uid));
+    }
+
+    // Earnings (collector earnings summary)
+    match /earnings/{collectorId} {
+      allow read: if isAuthenticated() && (isOwner(collectorId) || isAdmin());
+      allow write: if false; // Managed by backend only
+
+      // Earnings transactions sub-collection
+      match /transactions/{txId} {
+        allow read: if isAuthenticated() && (isOwner(collectorId) || isAdmin());
+        allow write: if false; // Managed by backend only
+      }
+    }
+  }
+}
