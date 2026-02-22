@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emptico – Admin Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+    <!-- ========== LOGIN PAGE ========== -->
+    <div id="loginPage" class="login-container">
+        <div class="login-box">
+            <div class="login-header">
+                <div class="logo">🗑️</div>
+                <h1>Emptico</h1>
+                <p>Admin Dashboard Login</p>
+            </div>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" placeholder="admin@emptico.io" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="Enter your password" required>
+                </div>
+                <button type="submit" class="login-btn">Sign In</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========== DASHBOARD ========== -->
+    <div id="dashboard" class="dashboard">
+
+        <!-- Top Navbar -->
+        <nav class="navbar">
+            <div class="navbar-brand">
+                <div class="icon">🗑️</div>
+                <span>Emptico Admin</span>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="search-bar-wrapper">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="globalSearch" class="search-bar"
+                    placeholder="Search dashboard, bins, users, routes…" oninput="globalSearch(this.value)"
+                    autocomplete="off">
+                <div id="searchResults" class="search-dropdown hidden"></div>
+            </div>
+
+            <div class="user-info">
+                <span id="adminName">Admin User</span>
+                <button class="logout-btn" onclick="logout()">⏻ Logout</button>
+            </div>
+        </nav>
+
+        <div class="main-content">
+            <!-- ===== LEFT SIDEBAR ===== -->
+            <aside class="sidebar">
+                <div class="sidebar-title">NAVIGATION</div>
+
+                <div class="menu-item active" id="nav-overview" onclick="showPage('overview', this)">
+                    <span class="nav-icon"></span>
+                    <span class="nav-label">Dashboard Overview</span>
+                </div>
+
+                <div class="menu-item" id="nav-bins" onclick="showPage('bins', this)">
+                    <span class="nav-icon"></span>
+                    <span class="nav-label">Smart Bin</span>
+                    <span class="badge premium-badge">PRO</span>
+                </div>
+
+                <div class="menu-item" id="nav-manual_bin" onclick="showPage('manual_bin', this)">
+                    <span class="nav-icon"></span>
+                    <span class="nav-label">Normal Bin</span>
+                    <span class="badge count-badge">28</span>
+                </div>
+
+                <div class="menu-item" id="nav-collections" onclick="showPage('collections', this)">
+                    <span class="nav-icon"></span>
+                    <span class="nav-label">Collections</span>
+                </div>
+
+                <div class="menu-item" id="nav-routes" onclick="showPage('routes', this)">
+                    <span class="nav-icon"></span>
+                    <span class="nav-label">Routes</span>
+                </div>
+
+                <div class="menu-item" id="nav-users" onclick="showPage('users', this)">
+                    <span class="nav-icon"></span>
+                    <span class="nav-label">Users</span>
+                </div>
+
+                <div class="menu-item" id="nav-requests" onclick="showPage('requests', this)">
+                    <span class="nav-icon"></span>
+                    <span class="nav-label">Requests</span>
+                    <span class="badge count-badge" id="requestsBadge">3</span>
+                </div>
+            </aside>
+
+            <!-- ===== CONTENT AREA ===== -->
+            <main class="content-area">
+
+                <!-- ── OVERVIEW PAGE ── -->
+                <div id="overviewPage" class="page">
+                    <div class="page-header">
+                        <h2> Dashboard Overview</h2>
+                        <p>Monitor and manage your smart waste collection system</p>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-card" style="--accent:#10b981">
+                            <div class="stat-icon"></div>
+                            <h3>Total Smart Bins</h3>
+                            <div class="value">248</div>
+                            <div class="change">+12 this month</div>
+                        </div>
+                        <div class="stat-card" style="--accent:#3b82f6">
+                            <div class="stat-icon"></div>
+                            <h3>Active Collections</h3>
+                            <div class="value" id="activeCollections">15</div>
+                            <div class="change">+3 today</div>
+                        </div>
+                        <div class="stat-card" style="--accent:#8b5cf6">
+                            <div class="stat-icon"></div>
+                            <h3>Total Users</h3>
+                            <div class="value">1,847</div>
+                            <div class="change">+89 this week</div>
+                        </div>
+                        <div class="stat-card" style="--accent:#f59e0b">
+                            <div class="stat-icon"></div>
+                            <h3>Waste Collected</h3>
+                            <div class="value">12.4T</div>
+                            <div class="change">+2.1T this month</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3>Recent Smart Bin Activity</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Bin ID</th>
+                                    <th>Location</th>
+                                    <th>Fill Level</th>
+                                    <th>Status</th>
+                                    <th>Last Updated</th>
+                                </tr>
+                            </thead>
+                            <tbody id="binActivityTable">
+                                <tr>
+                                    <td>BIN-001</td>
+                                    <td>Main Street, Zone A</td>
+                                    <td>
+                                        <div class="fill-bar">
+                                            <div class="fill-inner" style="width:87%;background:#ef4444"></div>
+                                            <span>87%</span>
+                                        </div>
+                                    </td>
+                                    <td><span class="status online">Online</span></td>
+                                    <td>2 mins ago</td>
+                                </tr>
+                                <tr>
+                                    <td>BIN-045</td>
+                                    <td>Park Avenue, Zone B</td>
+                                    <td>
+                                        <div class="fill-bar">
+                                            <div class="fill-inner" style="width:92%;background:#ef4444"></div>
+                                            <span>92%</span>
+                                        </div>
+                                    </td>
+                                    <td><span class="status online">Online</span></td>
+                                    <td>5 mins ago</td>
+                                </tr>
+                                <tr>
+                                    <td>BIN-128</td>
+                                    <td>City Center, Zone C</td>
+                                    <td>
+                                        <div class="fill-bar">
+                                            <div class="fill-inner" style="width:45%;background:#10b981"></div>
+                                            <span>45%</span>
+                                        </div>
+                                    </td>
+                                    <td><span class="status offline">Offline</span></td>
+                                    <td>1 hour ago</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="card">
+                        <h3>Quick Actions</h3>
+                        <div class="quick-actions">
+                            <button class="qa-btn" onclick="showPage('bins', document.getElementById('nav-bins'))">🤖
+                                Manage Smart Bins</button>
+                            <button class="qa-btn"
+                                onclick="showPage('routes', document.getElementById('nav-routes'))">🗺️ View
+                                Routes</button>
+                            <button class="qa-btn"
+                                onclick="showPage('requests', document.getElementById('nav-requests'))">📋 Check
+                                Requests</button>
+                            <button class="qa-btn" onclick="showPage('users', document.getElementById('nav-users'))">👥
+                                Manage Users</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── SMART BINS PAGE (Premium) ── -->
+                <div id="binsPage" class="page hidden">
+                    <div class="page-header">
+                        <h2>🤖 Smart Bins <span class="page-badge-premium">Premium</span></h2>
+                        <p>IoT-enabled bins with real-time fill-level monitoring</p>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-card" style="--accent:#10b981">
+                            <div class="stat-icon">✅</div>
+                            <h3>Online Bins</h3>
+                            <div class="value">231</div>
+                            <div class="change">93% uptime</div>
+                        </div>
+                        <div class="stat-card" style="--accent:#ef4444">
+                            <div class="stat-icon">⚠️</div>
+                            <h3>Critical (>90%)</h3>
+                            <div class="value">14</div>
+                            <div class="change">Needs urgent collection</div>
+                        </div>
+                        <div class="stat-card" style="--accent:#f59e0b">
+                            <div class="stat-icon">📡</div>
+                            <h3>Signal Issues</h3>
+                            <div class="value">3</div>
+                            <div class="change">Reconnecting…</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header-row">
+                            <h3>All Smart Bins (248)</h3>
+                            <input type="text" class="table-search" placeholder="Filter bins…"
+                                oninput="filterTable(this,'smartBinsTable')">
+                        </div>
+                        <table id="smartBinsTable">
+                            <thead>
+                                <tr>
+                                    <th>Bin ID</th>
+                                    <th>Location</th>
+                                    <th>Type</th>
+                                    <th>Fill Level</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>BIN-001</td>
+                                    <td>Main Street, Zone A</td>
+                                    <td>Recyclable</td>
+                                    <td>
+                                        <div class="fill-bar">
+                                            <div class="fill-inner" style="width:87%;background:#ef4444"></div>
+                                            <span>87%</span>
+                                        </div>
+                                    </td>
+                                    <td><span class="status online">Online</span></td>
+                                    <td><button class="btn btn-primary">View</button><button
+                                            class="btn btn-success">Collect</button></td>
+                                </tr>
+                                <tr>
+                                    <td>BIN-002</td>
+                                    <td>Park Avenue, Zone B</td>
+                                    <td>General Waste</td>
+                                    <td>
+                                        <div class="fill-bar">
+                                            <div class="fill-inner" style="width:34%;background:#10b981"></div>
+                                            <span>34%</span>
+                                        </div>
+                                    </td>
+                                    <td><span class="status online">Online</span></td>
+                                    <td><button class="btn btn-primary">View</button><button
+                                            class="btn btn-success">Collect</button></td>
+                                </tr>
+                                <tr>
+                                    <td>BIN-003</td>
+                                    <td>Shopping Mall, Zone C</td>
+                                    <td>Organic</td>
+                                    <td>
+                                        <div class="fill-bar">
+                                            <div class="fill-inner" style="width:78%;background:#f59e0b"></div>
+                                            <span>78%</span>
+                                        </div>
+                                    </td>
+                                    <td><span class="status online">Online</span></td>
+                                    <td><button class="btn btn-primary">View</button><button
+                                            class="btn btn-success">Collect</button></td>
+                                </tr>
+                                <tr>
+                                    <td>BIN-045</td>
+                                    <td>City Library, Zone D</td>
+                                    <td>E-Waste</td>
+                                    <td>
+                                        <div class="fill-bar">
+                                            <div class="fill-inner" style="width:92%;background:#ef4444"></div>
+                                            <span>92%</span>
+                                        </div>
+                                    </td>
+                                    <td><span class="status offline">Critical</span></td>
+                                    <td><button class="btn btn-primary">View</button><button
+                                            class="btn btn-success">Collect</button></td>
+                                </tr>
+                                <tr>
+                                    <td>BIN-067</td>
+                                    <td>Bus Stand, Zone A</td>
+                                    <td>General Waste</td>
+                                    <td>
+                                        <div class="fill-bar">
+                                            <div class="fill-inner" style="width:55%;background:#f59e0b"></div>
+                                            <span>55%</span>
+                                        </div>
+                                    </td>
+                                    <td><span class="status online">Online</span></td>
+                                    <td><button class="btn btn-primary">View</button><button
+                                            class="btn btn-success">Collect</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ── NORMAL BIN PAGE ── -->
+                <div id="manual_binPage" class="page hidden">
+                    <div class="page-header">
+                        <h2>🗑️ Normal Bins</h2>
+                        <p>Scheduled collection bins managed manually</p>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-card" style="--accent:#10b981">
+                            <div class="stat-icon">📅</div>
+                            <h3>Scheduled Today</h3>
+                            <div class="value">8</div>
+                            <div class="change">3 completed</div>
+                        </div>
+                        <div class="stat-card" style="--accent:#f59e0b">
+                            <div class="stat-icon">⏳</div>
+                            <h3>Pending</h3>
+                            <div class="value">5</div>
+                            <div class="change">This week</div>
+                        </div>
+                        <div class="stat-card" style="--accent:#3b82f6">
+                            <div class="stat-icon">🗑️</div>
+                            <h3>Total Normal Bins</h3>
+                            <div class="value">208</div>
+                            <div class="change">Across all zones</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header-row">
+                            <h3>Normal Bins (208)</h3>
+                            <input type="text" class="table-search" placeholder="Filter bins…"
+                                oninput="filterTable(this,'normalBinsTable')">
+                        </div>
+                        <table id="normalBinsTable">
+                            <thead>
+                                <tr>
+                                    <th>Location</th>
+                                    <th>Type</th>
+                                    <th>Scheduled Date</th>
+                                    <th>Scheduled Time</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Main Street, Zone A</td>
+                                    <td>Recyclable</td>
+                                    <td>17-02-2026</td>
+                                    <td>11:00 AM</td>
+                                    <td><span class="status pending">Pending</span></td>
+                                    <td><button class="btn btn-primary">View</button><button
+                                            class="btn btn-success">Collect</button></td>
+                                </tr>
+                                <tr>
+                                    <td>Park Avenue, Zone B</td>
+                                    <td>General Waste</td>
+                                    <td>20-02-2026</td>
+                                    <td>11:30 AM</td>
+                                    <td><span class="status pending">Pending</span></td>
+                                    <td><button class="btn btn-primary">View</button><button
+                                            class="btn btn-success">Collect</button></td>
+                                </tr>
+                                <tr>
+                                    <td>Shopping Mall, Zone C</td>
+                                    <td>Organic</td>
+                                    <td>17-02-2026</td>
+                                    <td>4:00 PM</td>
+                                    <td><span class="status online">Collected</span></td>
+                                    <td><button class="btn btn-primary">View</button><button
+                                            class="btn btn-success">Collect</button></td>
+                                </tr>
+                                <tr>
+                                    <td>School Road, Zone D</td>
+                                    <td>General Waste</td>
+                                    <td>22-02-2026</td>
+                                    <td>9:00 AM</td>
+                                    <td><span class="status pending">Pending</span></td>
+                                    <td><button class="btn btn-primary">View</button><button
+                                            class="btn btn-success">Collect</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ── COLLECTIONS PAGE ── -->
+                <div id="collectionsPage" class="page hidden">
+                    <div class="page-header">
+                        <h2>🚛 Collections</h2>
+                        <p>Track and manage all waste collection activities</p>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-card" style="--accent:#10b981">
+                            <div class="stat-icon">✅</div>
+                            <h3>Completed Today</h3>
+                            <div class="value">24</div>
+                            <div class="change">Out of 30 scheduled</div>
+                        </div>
+                        <div class="stat-card" style="--accent:#3b82f6">
+                            <div class="stat-icon">🔄</div>
+                            <h3>In Progress</h3>
+                            <div class="value">6</div>
+                            <div class="change">Live tracking</div>
+                        </div>
+                        <div class="stat-card" style="--accent:#f59e0b">
+                            <div class="stat-icon">📦</div>
+                            <h3>Total This Month</h3>
+                            <div class="value">412</div>
+                            <div class="change">+48 vs last month</div>
+                        </div>
+                        <div class="stat-card" style="--accent:#8b5cf6">
+                            <div class="stat-icon">⚖️</div>
+                            <h3>Waste Tonnage</h3>
+                            <div class="value">3.2T</div>
+                            <div class="change">This week</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header-row">
+                            <h3>Collection Log</h3>
+                            <div class="filter-row">
+                                <select class="table-filter" onchange="filterBySelect(this,'collectionsTable',4)">
+                                    <option value="">All Status</option>
+                                    <option>Completed</option>
+                                    <option>In Progress</option>
+                                    <option>Scheduled</option>
+                                </select>
+                                <input type="text" class="table-search" placeholder="Search…"
+                                    oninput="filterTable(this,'collectionsTable')">
+                            </div>
+                        </div>
+                        <table id="collectionsTable">
+                            <thead>
+                                <tr>
+                                    <th>Collection ID</th>
+                                    <th>Zone</th>
+                                    <th>Collector</th>
+                                    <th>Bins Collected</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>COL-101</td>
+                                    <td>Zone A</td>
+                                    <td>John Collector</td>
+                                    <td>12</td>
+                                    <td><span class="status online">Completed</span></td>
+                                    <td>22-02-2026</td>
+                                    <td><button class="btn btn-primary">View</button><button
+                                            class="btn btn-warning">Report</button></td>
+                                </tr>
+                                <tr>
+                                    <td>COL-102</td>
+                                    <td>Zone B</td>
+                                    <td>Mike Driver</td>
+                                    <td>8</td>
+                                    <td><span class="status pending">In Progress</span></td>
+                                    <td>22-02-2026</td>
+                                    <td><button class="btn btn-primary">View</button><button
+                                            class="btn btn-warning">Report</button></td>
+                                </tr>
+                                <tr>
+                                    <td>COL-103</td>
+                                    <td>Zone C</td>
+                                    <td>Sarah Collector</td>
+                                    <td>15</td>
+                                    <td><span class="status online">Completed</span></td>
+                                    <td>21-02-2026</td>
+                                    <td><button class="btn btn-primary">View</button><button
+                                            class="btn btn-warning">Report</button></td>
+                                </tr>
+                                <tr>
+                                    <td>COL-104</td>
+                                    <td>Zone D</td>
+                                    <td>Raj Operator</td>
+                                    <td>0</td>
+                                    <td><span class="status offline">Scheduled</span></td>
+                                    <td>23-02-2026</td>
+                                    <td><button class="btn btn-primary">View</button><button
+                                            class="btn btn-warning">Report</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ── ROUTES PAGE ── -->
+                <div id="routesPage" class="page hidden">
+                    <div class="page-header">
+                        <h2>🗺️ Routes</h2>
+                        <p>Plan and optimize waste collection routes</p>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-card" style="--accent:#3b82f6">
+                            <div class="stat-icon">🛣️</div>
+                            <h3>Active Routes</h3>
+                            <div class="value">8</div>
+                            <div class="change">Across 4 zones</div>
+                        </div>
+                        <div class="stat-card" style="--accent:#10b981">
+                            <div class="stat-icon">📍</div>
+                            <h3>Stops Today</h3>
+                            <div class="value">87</div>
+                            <div class="change">62 completed</div>
+                        </div>
+                        <div class="stat-card" style="--accent:#f59e0b">
+                            <div class="stat-icon">⛽</div>
+                            <h3>Fuel Saved</h3>
+                            <div class="value">18L</div>
+                            <div class="change">Via AI optimization</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header-row">
+                            <h3>Route Management</h3>
+                            <button class="btn btn-primary" onclick="alert('Route builder coming soon!')">+ New
+                                Route</button>
+                        </div>
+                        <table id="routesTable">
+                            <thead>
+                                <tr>
+                                    <th>Route ID</th>
+                                    <th>Name</th>
+                                    <th>Zone</th>
+                                    <th>Bins</th>
+                                    <th>Distance (km)</th>
+                                    <th>Assigned Collector</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>RTE-01</td>
+                                    <td>North Loop</td>
+                                    <td>Zone A</td>
+                                    <td>22</td>
+                                    <td>14.2</td>
+                                    <td>John Collector</td>
+                                    <td><span class="status online">Active</span></td>
+                                    <td><button class="btn btn-primary">View Map</button><button
+                                            class="btn btn-warning">Edit</button></td>
+                                </tr>
+                                <tr>
+                                    <td>RTE-02</td>
+                                    <td>Park Circuit</td>
+                                    <td>Zone B</td>
+                                    <td>18</td>
+                                    <td>11.8</td>
+                                    <td>Mike Driver</td>
+                                    <td><span class="status pending">In Progress</span></td>
+                                    <td><button class="btn btn-primary">View Map</button><button
+                                            class="btn btn-warning">Edit</button></td>
+                                </tr>
+                                <tr>
+                                    <td>RTE-03</td>
+                                    <td>Central Run</td>
+                                    <td>Zone C</td>
+                                    <td>30</td>
+                                    <td>19.5</td>
+                                    <td>Sarah Collector</td>
+                                    <td><span class="status online">Active</span></td>
+                                    <td><button class="btn btn-primary">View Map</button><button
+                                            class="btn btn-warning">Edit</button></td>
+                                </tr>
+                                <tr>
+                                    <td>RTE-04</td>
+                                    <td>East Road</td>
+                                    <td>Zone D</td>
+                                    <td>14</td>
+                                    <td>9.3</td>
+                                    <td>Raj Operator</td>
+                                    <td><span class="status offline">Idle</span></td>
+                                    <td><button class="btn btn-primary">View Map</button><button
+                                            class="btn btn-warning">Edit</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="card">
+                        <h3>Route Map Placeholder</h3>
+                        <div class="map-placeholder">
+                            🗺️ Interactive map view — integrate Google Maps or Leaflet.js here
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── USERS PAGE ── -->
+                <div id="usersPage" class="page hidden">
+                    <div class="page-header">
+                        <h2>👥 User Management</h2>
+                        <p>Manage users, collectors and administrators</p>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-card" style="--accent:#8b5cf6">
+                            <div class="stat-icon">👤</div>
+                            <h3>Total Users</h3>
+                            <div class="value">1,847</div>
+                            <div class="change">+89 this week</div>
+                        </div>
+                        <div class="stat-card" style="--accent:#10b981">
+                            <div class="stat-icon">🟢</div>
+                            <h3>Active</h3>
+                            <div class="value">1,792</div>
+                            <div class="change">97% active rate</div>
+                        </div>
+                        <div class="stat-card" style="--accent:#3b82f6">
+                            <div class="stat-icon">⭐</div>
+                            <h3>Premium Users</h3>
+                            <div class="value">421</div>
+                            <div class="change">Smart Bin subscribers</div>
+                        </div>
+                        <div class="stat-card" style="--accent:#f59e0b">
+                            <div class="stat-icon">🚛</div>
+                            <h3>Collectors</h3>
+                            <div class="value">34</div>
+                            <div class="change">Field staff</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header-row">
+                            <h3>System Users</h3>
+                            <div class="filter-row">
+                                <select class="table-filter" onchange="filterBySelect(this,'usersTable',2)">
+                                    <option value="">All Roles</option>
+                                    <option>Administrator</option>
+                                    <option>Collector</option>
+                                    <option>Premium User</option>
+                                    <option>Normal User</option>
+                                </select>
+                                <input type="text" class="table-search" placeholder="Search users…"
+                                    oninput="filterTable(this,'usersTable')">
+                            </div>
+                        </div>
+                        <table id="usersTable">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Plan</th>
+                                    <th>Status</th>
+                                    <th>Joined</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>John Collector</td>
+                                    <td>john@emptico.io</td>
+                                    <td>Collector</td>
+                                    <td>Staff</td>
+                                    <td><span class="status online">Active</span></td>
+                                    <td>Jan 2025</td>
+                                    <td><button class="btn btn-primary">Edit</button><button
+                                            class="btn btn-danger">Delete</button></td>
+                                </tr>
+                                <tr>
+                                    <td>Sarah Admin</td>
+                                    <td>sarah@emptico.io</td>
+                                    <td>Administrator</td>
+                                    <td>Staff</td>
+                                    <td><span class="status online">Active</span></td>
+                                    <td>Mar 2024</td>
+                                    <td><button class="btn btn-primary">Edit</button><button
+                                            class="btn btn-danger">Delete</button></td>
+                                </tr>
+                                <tr>
+                                    <td>Mike Driver</td>
+                                    <td>mike@emptico.io</td>
+                                    <td>Collector</td>
+                                    <td>Staff</td>
+                                    <td><span class="status online">Active</span></td>
+                                    <td>Jun 2025</td>
+                                    <td><button class="btn btn-primary">Edit</button><button
+                                            class="btn btn-danger">Delete</button></td>
+                                </tr>
+                                <tr>
+                                    <td>Priya Sharma</td>
+                                    <td>priya@gmail.com</td>
+                                    <td>Premium User</td>
+                                    <td>⭐ Premium</td>
+                                    <td><span class="status online">Active</span></td>
+                                    <td>Sep 2025</td>
+                                    <td><button class="btn btn-primary">Edit</button><button
+                                            class="btn btn-danger">Delete</button></td>
+                                </tr>
+                                <tr>
+                                    <td>Arjun Nair</td>
+                                    <td>arjun@gmail.com</td>
+                                    <td>Normal User</td>
+                                    <td>Free</td>
+                                    <td><span class="status offline">Inactive</span></td>
+                                    <td>Nov 2025</td>
+                                    <td><button class="btn btn-primary">Edit</button><button
+                                            class="btn btn-danger">Delete</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ── REQUESTS PAGE ── -->
+                <div id="requestsPage" class="page hidden">
+                    <div class="page-header">
+                        <h2>📋 Collection Requests</h2>
+                        <p>Monitor and respond to user-submitted collection requests</p>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-card" style="--accent:#ef4444">
+                            <div class="stat-icon">🔴</div>
+                            <h3>High Priority</h3>
+                            <div class="value">1</div>
+                            <div class="change">Urgent attention</div>
+                        </div>
+                        <div class="stat-card" style="--accent:#f59e0b">
+                            <div class="stat-icon">🟡</div>
+                            <h3>Medium Priority</h3>
+                            <div class="value">1</div>
+                            <div class="change">This week</div>
+                        </div>
+                        <div class="stat-card" style="--accent:#10b981">
+                            <div class="stat-icon">🟢</div>
+                            <h3>Low Priority</h3>
+                            <div class="value">1</div>
+                            <div class="change">Can be scheduled</div>
+                        </div>
+                        <div class="stat-card" style="--accent:#3b82f6">
+                            <div class="stat-icon">✅</div>
+                            <h3>Resolved Today</h3>
+                            <div class="value">7</div>
+                            <div class="change">+2 vs yesterday</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header-row">
+                            <h3>Pending Requests</h3>
+                            <div class="filter-row">
+                                <select class="table-filter" onchange="filterBySelect(this,'requestsTable',2)">
+                                    <option value="">All Priority</option>
+                                    <option>High</option>
+                                    <option>Medium</option>
+                                    <option>Low</option>
+                                </select>
+                                <input type="text" class="table-search" placeholder="Search requests…"
+                                    oninput="filterTable(this,'requestsTable')">
+                            </div>
+                        </div>
+                        <table id="requestsTable">
+                            <thead>
+                                <tr>
+                                    <th>Request ID</th>
+                                    <th>Bin Location</th>
+                                    <th>Priority</th>
+                                    <th>Requested By</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>REQ-234</td>
+                                    <td>Main Street, Zone A</td>
+                                    <td><span class="priority high">High</span></td>
+                                    <td>Priya Sharma</td>
+                                    <td><span class="status pending">Pending</span></td>
+                                    <td>22-02-2026</td>
+                                    <td><button class="btn btn-success">Assign</button><button
+                                            class="btn btn-danger">Cancel</button></td>
+                                </tr>
+                                <tr>
+                                    <td>REQ-235</td>
+                                    <td>Park Avenue, Zone B</td>
+                                    <td><span class="priority medium">Medium</span></td>
+                                    <td>Arjun Nair</td>
+                                    <td><span class="status pending">Pending</span></td>
+                                    <td>21-02-2026</td>
+                                    <td><button class="btn btn-success">Assign</button><button
+                                            class="btn btn-danger">Cancel</button></td>
+                                </tr>
+                                <tr>
+                                    <td>REQ-236</td>
+                                    <td>City Center, Zone C</td>
+                                    <td><span class="priority low">Low</span></td>
+                                    <td>Raj Operator</td>
+                                    <td><span class="status pending">Pending</span></td>
+                                    <td>20-02-2026</td>
+                                    <td><button class="btn btn-success">Assign</button><button
+                                            class="btn btn-danger">Cancel</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="card">
+                        <h3>Recently Resolved</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Request ID</th>
+                                    <th>Location</th>
+                                    <th>Assigned To</th>
+                                    <th>Resolved On</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>REQ-230</td>
+                                    <td>School Road, Zone D</td>
+                                    <td>John Collector</td>
+                                    <td>21-02-2026</td>
+                                    <td><span class="status online">Resolved</span></td>
+                                </tr>
+                                <tr>
+                                    <td>REQ-231</td>
+                                    <td>Bus Stand, Zone A</td>
+                                    <td>Mike Driver</td>
+                                    <td>22-02-2026</td>
+                                    <td><span class="status online">Resolved</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
