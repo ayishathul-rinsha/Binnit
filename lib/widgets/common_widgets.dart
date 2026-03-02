@@ -16,6 +16,8 @@ class CustomTextField extends StatelessWidget {
   final TextInputAction? textInputAction;
   final void Function(String)? onSubmitted;
   final void Function(String)? onChanged;
+  final FocusNode? focusNode;
+  final FocusNode? nextFocus;
 
   const CustomTextField({
     super.key,
@@ -32,6 +34,8 @@ class CustomTextField extends StatelessWidget {
     this.textInputAction,
     this.onSubmitted,
     this.onChanged,
+    this.focusNode,
+    this.nextFocus,
   });
 
   @override
@@ -43,8 +47,15 @@ class CustomTextField extends StatelessWidget {
       obscureText: obscureText,
       enabled: enabled,
       maxLines: maxLines,
-      textInputAction: textInputAction,
-      onFieldSubmitted: onSubmitted,
+      focusNode: focusNode,
+      textInputAction:
+          textInputAction ?? (nextFocus != null ? TextInputAction.next : null),
+      onFieldSubmitted: (value) {
+        if (nextFocus != null) {
+          nextFocus!.requestFocus();
+        }
+        onSubmitted?.call(value);
+      },
       onChanged: onChanged,
       decoration: InputDecoration(
         labelText: label,
@@ -210,8 +221,8 @@ class EmptyState extends StatelessWidget {
               Text(
                 subtitle!,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textSecondary,
-                ),
+                      color: AppColors.textSecondary,
+                    ),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -317,9 +328,9 @@ class StatsCard extends StatelessWidget {
             Text(
               value,
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
             ),
             const SizedBox(height: AppDimens.paddingXS),
             Text(

@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../providers/onboarding_provider.dart';
+import '../../providers/auth_provider.dart' as app_auth;
+import '../../providers/collector_provider.dart';
+import '../../models/models.dart';
 import '../../utils/constants.dart';
 import '../../routes/app_routes.dart';
 import '../../l10n/app_localizations.dart';
@@ -21,17 +26,126 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
   // Step 1: Phone
   final _phoneController = TextEditingController();
   final _otpController = TextEditingController();
+  final _phoneFocus = FocusNode();
+  final _otpFocus = FocusNode();
   bool _otpSent = false;
 
   // Step 2: Personal details
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _addressController = TextEditingController();
-  final _cityController = TextEditingController();
+  String? _selectedCity;
+  final _nameFocus = FocusNode();
+  final _emailFocus = FocusNode();
+  final _addressFocus = FocusNode();
+
+  // Indian cities list (alphabetically sorted)
+  static const List<String> _indianCities = [
+    'Agra',
+    'Ahmedabad',
+    'Ajmer',
+    'Akola',
+    'Aligarh',
+    'Allahabad',
+    'Ambattur',
+    'Amravati',
+    'Amritsar',
+    'Asansol',
+    'Aurangabad',
+    'Bangalore',
+    'Bareilly',
+    'Belgaum',
+    'Bhavnagar',
+    'Bhilai',
+    'Bhiwandi',
+    'Bhopal',
+    'Bhubaneswar',
+    'Bikaner',
+    'Chandigarh',
+    'Chennai',
+    'Coimbatore',
+    'Cuttack',
+    'Dehradun',
+    'Delhi',
+    'Dhanbad',
+    'Durgapur',
+    'Erode',
+    'Faridabad',
+    'Firozabad',
+    'Gaya',
+    'Ghaziabad',
+    'Gorakhpur',
+    'Gulbarga',
+    'Guntur',
+    'Guwahati',
+    'Gwalior',
+    'Howrah',
+    'Hubli',
+    'Hyderabad',
+    'Indore',
+    'Jabalpur',
+    'Jaipur',
+    'Jalandhar',
+    'Jammu',
+    'Jamnagar',
+    'Jamshedpur',
+    'Jhansi',
+    'Jodhpur',
+    'Kanpur',
+    'Kochi',
+    'Kolhapur',
+    'Kolkata',
+    'Kota',
+    'Kozhikode',
+    'Kurnool',
+    'Loni',
+    'Lucknow',
+    'Ludhiana',
+    'Madurai',
+    'Malegaon',
+    'Mangalore',
+    'Meerut',
+    'Moradabad',
+    'Mumbai',
+    'Mysore',
+    'Nagpur',
+    'Nanded',
+    'Nashik',
+    'Nellore',
+    'Noida',
+    'Patna',
+    'Pune',
+    'Raipur',
+    'Rajahmundry',
+    'Rajkot',
+    'Ranchi',
+    'Rourkela',
+    'Saharanpur',
+    'Salem',
+    'Sangli',
+    'Siliguri',
+    'Solapur',
+    'Srinagar',
+    'Thane',
+    'Thiruvananthapuram',
+    'Thrissur',
+    'Tiruchirappalli',
+    'Tirunelveli',
+    'Tiruppur',
+    'Udaipur',
+    'Ujjain',
+    'Ulhasnagar',
+    'Vadodara',
+    'Varanasi',
+    'Vijayawada',
+    'Visakhapatnam',
+    'Warangal',
+  ];
 
   // Step 3: Work details
   String _vehicleType = 'two_wheeler';
   final _experienceController = TextEditingController();
+  final _experienceFocus = FocusNode();
   bool _hasLicense = false;
   bool _termsAccepted = false;
 
@@ -43,8 +157,13 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
     _nameController.dispose();
     _emailController.dispose();
     _addressController.dispose();
-    _cityController.dispose();
     _experienceController.dispose();
+    _phoneFocus.dispose();
+    _otpFocus.dispose();
+    _nameFocus.dispose();
+    _emailFocus.dispose();
+    _addressFocus.dispose();
+    _experienceFocus.dispose();
     super.dispose();
   }
 
@@ -95,17 +214,119 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
 
     setState(() => _isLoading = true);
 
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      // Create Firebase Auth account using email from personal details
+      final email = _emailController.text.trim();
+      // Use phone number as temporary password (user can reset later)
+      final password = _phoneController.text.trim();
 
-    final onboardingProvider = Provider.of<OnboardingProvider>(
-      context,
-      listen: false,
-    );
-    await onboardingProvider.setRiderRegistered();
-    await onboardingProvider.completeOnboarding();
+      // Create user in Firebase Auth
+      final UserCredential result =
+          await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
 
-    if (mounted) {
-      Navigator.pushReplacementNamed(context, Routes.registrationComplete);
+      if (result.user == null) {
+        throw Exception('Failed to create account');
+      }
+
+      // Update display name
+      await result.user!.updateDisplayName(_nameController.text.trim());
+
+      // Build collector profile with all form data
+      final collector = Collector(
+        id: result.user!.uid,
+        name: _nameController.text.trim(),
+        email: email,
+        phone: _phoneController.text.trim(),
+        isOnline: false,
+        rating: 0.0,
+        totalPickups: 0,
+        totalHoursToday: 0,
+        vehicle: VehicleDetails(
+          id: 'vehicle_${result.user!.uid}',
+          vehicleType: _vehicleType,
+          vehicleNumber: '',
+        ),
+      );
+
+      // Save full profile to Firestore 'users' collection
+      final profileData = {
+        ...collector.toJson(),
+        'address': _addressController.text.trim(),
+        'city': _selectedCity ?? '',
+        'experience': _experienceController.text.trim(),
+        'has_license': _hasLicense,
+        'role': 'collector',
+        'status': 'approved',
+        'created_at': DateTime.now().toIso8601String(),
+      };
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(result.user!.uid)
+          .set(profileData);
+
+      // Update providers so the app recognizes the logged-in user
+      if (mounted) {
+        final authProvider = Provider.of<app_auth.AuthProvider>(
+          context,
+          listen: false,
+        );
+        authProvider.updateCollector(collector);
+
+        final collectorProvider = Provider.of<CollectorProvider>(
+          context,
+          listen: false,
+        );
+        collectorProvider.setCollector(collector);
+      }
+
+      // Mark onboarding as complete
+      final onboardingProvider = Provider.of<OnboardingProvider>(
+        context,
+        listen: false,
+      );
+      await onboardingProvider.setRiderRegistered();
+      await onboardingProvider.completeOnboarding();
+
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, Routes.registrationComplete);
+      }
+    } on FirebaseAuthException catch (e) {
+      String message;
+      switch (e.code) {
+        case 'email-already-in-use':
+          message = 'An account with this email already exists';
+          break;
+        case 'weak-password':
+          message = 'Password is too weak';
+          break;
+        case 'invalid-email':
+          message = 'Invalid email address';
+          break;
+        default:
+          message = 'Registration failed: ${e.message}';
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message), backgroundColor: Colors.red),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -214,6 +435,9 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
             prefix: '+91 ',
             keyboardType: TextInputType.phone,
             enabled: !_otpSent,
+            focusNode: _phoneFocus,
+            onSubmit: _otpSent ? null : _sendOtp,
+            nextFocus: _otpSent ? _otpFocus : null,
           ),
           if (_otpSent) ...[
             const SizedBox(height: 24),
@@ -222,6 +446,9 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
               label: 'OTP',
               hint: '6-digit OTP',
               keyboardType: TextInputType.number,
+              focusNode: _otpFocus,
+              onSubmit: _verifyOtp,
+              textInputAction: TextInputAction.done,
             ),
             const SizedBox(height: 12),
             TextButton(
@@ -296,6 +523,8 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
             controller: _nameController,
             label: l10n.fullName,
             hint: l10n.fullName,
+            focusNode: _nameFocus,
+            nextFocus: _emailFocus,
           ),
           const SizedBox(height: 20),
           _buildTextField(
@@ -303,6 +532,8 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
             label: l10n.emailAddress,
             hint: l10n.email,
             keyboardType: TextInputType.emailAddress,
+            focusNode: _emailFocus,
+            nextFocus: _addressFocus,
           ),
           const SizedBox(height: 20),
           _buildTextField(
@@ -310,12 +541,62 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
             label: l10n.address,
             hint: l10n.address,
             maxLines: 2,
+            focusNode: _addressFocus,
+            onSubmit: () => FocusScope.of(context).unfocus(),
+            textInputAction: TextInputAction.done,
           ),
           const SizedBox(height: 20),
-          _buildTextField(
-            controller: _cityController,
-            label: l10n.city,
-            hint: l10n.city,
+          // City dropdown
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l10n.city,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 10),
+              DropdownButtonFormField<String>(
+                value: _selectedCity,
+                decoration: InputDecoration(
+                  hintText: 'Select your city',
+                  hintStyle: TextStyle(color: AppColors.textLight),
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppColors.border),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppColors.border),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide:
+                        const BorderSide(color: AppColors.primary, width: 1.5),
+                  ),
+                ),
+                isExpanded: true,
+                menuMaxHeight: 300,
+                items: _indianCities.map((city) {
+                  return DropdownMenuItem<String>(
+                    value: city,
+                    child: Text(city),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() => _selectedCity = value);
+                },
+              ),
+            ],
           ),
           const SizedBox(height: 32),
           SizedBox(
@@ -507,6 +788,10 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
     TextInputType? keyboardType,
     int maxLines = 1,
     bool enabled = true,
+    FocusNode? focusNode,
+    FocusNode? nextFocus,
+    VoidCallback? onSubmit,
+    TextInputAction? textInputAction,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -522,9 +807,23 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
         const SizedBox(height: 10),
         TextFormField(
           controller: controller,
+          focusNode: focusNode,
           keyboardType: keyboardType,
           maxLines: maxLines,
           enabled: enabled,
+          textInputAction: textInputAction ??
+              (nextFocus != null
+                  ? TextInputAction.next
+                  : onSubmit != null
+                      ? TextInputAction.done
+                      : TextInputAction.next),
+          onFieldSubmitted: (_) {
+            if (nextFocus != null) {
+              nextFocus.requestFocus();
+            } else if (onSubmit != null) {
+              onSubmit();
+            }
+          },
           style: const TextStyle(fontSize: 15),
           decoration: InputDecoration(
             hintText: hint,

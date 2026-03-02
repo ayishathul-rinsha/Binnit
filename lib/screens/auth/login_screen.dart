@@ -8,7 +8,7 @@ import '../../utils/helpers.dart';
 import '../../widgets/widgets.dart';
 import '../../l10n/app_localizations.dart';
 
-/// Login screen - Warm, welcoming, balanced design
+/// Login screen with subtle animations
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -82,194 +82,220 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       const SizedBox(height: 50),
 
-                      // Header with logo
-                      _buildHeader(l10n),
+                      // Animated Header
+                      FadeSlideAnimation(
+                        delay: 100,
+                        child: _buildHeader(l10n),
+                      ),
 
                       const SizedBox(height: 48),
 
-                      // Welcome section
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: AppColors.accent,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              l10n.welcomeBack,
-                              style: TextStyle(
-                                fontSize: 26,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.textPrimary,
+                      // Animated Welcome section
+                      FadeSlideAnimation(
+                        delay: 200,
+                        child: Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: AppColors.accent,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                l10n.welcomeBack,
+                                style: TextStyle(
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.textPrimary,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              l10n.signInContinue,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: AppColors.textSecondary,
+                              const SizedBox(height: 6),
+                              Text(
+                                l10n.signInContinue,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: AppColors.textSecondary,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
 
                       const SizedBox(height: 32),
 
-                      // Email field
-                      _buildTextField(
-                        controller: _emailController,
-                        label: l10n.email,
-                        hint: l10n.email,
-                        icon: Icons.mail_outline_rounded,
-                        keyboardType: TextInputType.emailAddress,
-                        validator: ValidationHelper.validateEmail,
+                      // Animated Email field
+                      FadeSlideAnimation(
+                        delay: 300,
+                        child: _buildTextField(
+                          controller: _emailController,
+                          label: l10n.email,
+                          hint: l10n.email,
+                          icon: Icons.mail_outline_rounded,
+                          keyboardType: TextInputType.emailAddress,
+                          validator: ValidationHelper.validateEmail,
+                        ),
                       ),
 
                       const SizedBox(height: 20),
 
-                      // Password field
-                      _buildTextField(
-                        controller: _passwordController,
-                        label: l10n.password,
-                        hint: l10n.password,
-                        icon: Icons.lock_outline_rounded,
-                        obscureText: _obscurePassword,
-                        validator: ValidationHelper.validatePassword,
-                        suffixIcon: GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _obscurePassword = !_obscurePassword;
-                            });
-                          },
-                          child: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined,
-                            color: AppColors.textLight,
-                            size: 20,
+                      // Animated Password field
+                      FadeSlideAnimation(
+                        delay: 400,
+                        child: _buildTextField(
+                          controller: _passwordController,
+                          label: l10n.password,
+                          hint: l10n.password,
+                          icon: Icons.lock_outline_rounded,
+                          obscureText: _obscurePassword,
+                          validator: ValidationHelper.validatePassword,
+                          suffixIcon: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
+                            child: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
+                              color: AppColors.textLight,
+                              size: 20,
+                            ),
                           ),
                         ),
                       ),
 
                       const SizedBox(height: 14),
 
-                      // Forgot password
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: () {
-                            Navigator.pushNamed(context, Routes.forgotPassword);
-                          },
-                          style: TextButton.styleFrom(
-                            foregroundColor: AppColors.secondary,
-                            padding: EdgeInsets.zero,
-                          ),
-                          child: Text(
-                            l10n.forgotPassword,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
+                      // Animated Forgot password
+                      FadeSlideAnimation(
+                        delay: 500,
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: () {
+                              Navigator.pushNamed(
+                                  context, Routes.forgotPassword);
+                            },
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppColors.secondary,
+                              padding: EdgeInsets.zero,
                             ),
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 28),
-
-                      // Sign in button
-                      SizedBox(
-                        width: double.infinity,
-                        height: 54,
-                        child: ElevatedButton(
-                          onPressed:
-                              authProvider.isLoading ? null : _handleLogin,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            shadowColor: AppColors.primary.withOpacity(0.3),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                          child: authProvider.isLoading
-                              ? const SizedBox(
-                                  width: 22,
-                                  height: 22,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2.5,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : Text(
-                                  l10n.signIn,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 28),
-
-                      // Divider
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Container(
-                              height: 1,
-                              color: AppColors.border,
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
                             child: Text(
-                              l10n.newHere,
-                              style: TextStyle(
+                              l10n.forgotPassword,
+                              style: const TextStyle(
                                 fontSize: 13,
-                                color: AppColors.textSecondary,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ),
-                          Expanded(
-                            child: Container(
-                              height: 1,
-                              color: AppColors.border,
+                        ),
+                      ),
+
+                      const SizedBox(height: 28),
+
+                      // Animated Sign in button
+                      FadeSlideAnimation(
+                        delay: 600,
+                        child: SizedBox(
+                          width: double.infinity,
+                          height: 54,
+                          child: ElevatedButton(
+                            onPressed:
+                                authProvider.isLoading ? null : _handleLogin,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shadowColor: AppColors.primary.withOpacity(0.3),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
                             ),
+                            child: authProvider.isLoading
+                                ? const SizedBox(
+                                    width: 22,
+                                    height: 22,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : Text(
+                                    l10n.signIn,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
                           ),
-                        ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 28),
+
+                      // Animated Divider
+                      FadeSlideAnimation(
+                        delay: 700,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Container(
+                                height: 1,
+                                color: AppColors.border,
+                              ),
+                            ),
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
+                              child: Text(
+                                l10n.newHere,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: Container(
+                                height: 1,
+                                color: AppColors.border,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
 
                       const SizedBox(height: 24),
 
-                      // Sign up button
-                      SizedBox(
-                        width: double.infinity,
-                        height: 54,
-                        child: OutlinedButton(
-                          onPressed: () {
-                            Navigator.pushNamed(context, Routes.signup);
-                          },
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.primary,
-                            side: BorderSide(
-                              color: AppColors.primary,
-                              width: 1.5,
+                      // Animated Sign up button
+                      FadeSlideAnimation(
+                        delay: 800,
+                        child: SizedBox(
+                          width: double.infinity,
+                          height: 54,
+                          child: OutlinedButton(
+                            onPressed: () {
+                              Navigator.pushNamed(context, Routes.signup);
+                            },
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.primary,
+                              side: BorderSide(
+                                color: AppColors.primary,
+                                width: 1.5,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
                             ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                          child: Text(
-                            l10n.createAccount,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
+                            child: Text(
+                              l10n.createAccount,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ),
@@ -311,16 +337,16 @@ class _LoginScreenState extends State<LoginScreen> {
           children: [
             Text(
               l10n.appName,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
+                color: AppColors.primary,
               ),
             ),
             Text(
-              'Collector',
+              l10n.tagline,
               style: TextStyle(
-                fontSize: 13,
+                fontSize: 12,
                 color: AppColors.textSecondary,
                 fontWeight: FontWeight.w500,
               ),

@@ -1,66 +1,89 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/models.dart';
+import 'firestore_service.dart';
 
-/// Pickup Service - Backend ready (returns empty data until backend is connected)
+/// Pickup Service - Now connected to Firebase Firestore
 class PickupService {
-  /// Fetch incoming pickup requests
-  /// Returns empty list - will be populated from backend when users request pickups
+  static String? get _collectorId => FirebaseAuth.instance.currentUser?.uid;
+
+  /// Fetch incoming pickup requests (pending pickups available)
   static Future<List<PickupRequest>> getPickupRequests() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    // No hardcoded data - will come from backend via API
-    return [];
+    return await FirestoreService.getPendingPickups();
   }
 
   /// Fetch active pickups for current collector
-  /// Returns empty list - will be populated when collector accepts a pickup
   static Future<List<PickupRequest>> getActivePickups() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    // No hardcoded data - will come from backend
-    return [];
+    if (_collectorId == null) return [];
+    return await FirestoreService.getActivePickups(_collectorId!);
   }
 
   /// Fetch pickup history
-  /// Returns empty list - will be populated from backend after pickups are completed
   static Future<List<PickupRequest>> getPickupHistory({
     DateTime? startDate,
     DateTime? endDate,
     WasteCategory? category,
   }) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    // No hardcoded data - will come from backend
-    return [];
+    if (_collectorId == null) return [];
+    return await FirestoreService.getPickupHistory(
+      _collectorId!,
+      startDate: startDate,
+      endDate: endDate,
+      category: category,
+    );
   }
 
-  /// Accept a pickup request - returns result map
+  /// Accept a pickup request
   static Future<Map<String, dynamic>> acceptPickup(String pickupId) async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    // Backend will handle this
-    return {'success': true, 'message': 'Pickup accepted'};
+    if (_collectorId == null) {
+      return {'success': false, 'message': 'Not logged in'};
+    }
+
+    final success =
+        await FirestoreService.acceptPickup(pickupId, _collectorId!);
+    return {
+      'success': success,
+      'message': success ? 'Pickup accepted' : 'Failed to accept pickup',
+    };
   }
 
-  /// Reject a pickup request - returns result map
+  /// Reject a pickup request
   static Future<Map<String, dynamic>> rejectPickup(String pickupId) async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    // Backend will handle this
-    return {'success': true, 'message': 'Pickup rejected'};
+    final success = await FirestoreService.rejectPickup(pickupId);
+    return {
+      'success': success,
+      'message': success ? 'Pickup rejected' : 'Failed to reject pickup',
+    };
   }
 
-  /// Update pickup status - returns result map
+  /// Update pickup status
   static Future<Map<String, dynamic>> updatePickupStatus(
     String pickupId,
     PickupStatus status,
   ) async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    // Backend will handle this
+    final success = await FirestoreService.updatePickupStatus(pickupId, status);
     return {
-      'success': true,
-      'message': 'Status updated to ${status.displayName}'
+      'success': success,
+      'message': success
+          ? 'Status updated to ${status.displayName}'
+          : 'Failed to update status',
     };
   }
 
   /// Upload proof of pickup (photo)
+  /// Note: Firebase Storage integration can be added later
   static Future<bool> uploadProof(String pickupId, String imagePath) async {
-    await Future.delayed(const Duration(milliseconds: 1000));
-    // Backend will handle file upload
+    // TODO: Upload to Firebase Storage when needed
     return true;
+  }
+
+  /// Stream of pending pickup requests (real-time)
+  static Stream<List<PickupRequest>> pendingPickupsStream() {
+    return FirestoreService.pickupRequestsStream();
+  }
+
+  /// Stream of active pickups (real-time)
+  static Stream<List<PickupRequest>> activePickupsStream() {
+    if (_collectorId == null) return Stream.value([]);
+    return FirestoreService.activePickupsStream(_collectorId!);
   }
 }

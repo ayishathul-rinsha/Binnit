@@ -22,6 +22,14 @@ class _SignupScreenState extends State<SignupScreen> {
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+
+  // Focus nodes for Enter key navigation
+  final _nameFocus = FocusNode();
+  final _emailFocus = FocusNode();
+  final _phoneFocus = FocusNode();
+  final _passwordFocus = FocusNode();
+  final _confirmPasswordFocus = FocusNode();
+
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _acceptedTerms = false;
@@ -33,6 +41,11 @@ class _SignupScreenState extends State<SignupScreen> {
     _phoneController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _nameFocus.dispose();
+    _emailFocus.dispose();
+    _phoneFocus.dispose();
+    _passwordFocus.dispose();
+    _confirmPasswordFocus.dispose();
     super.dispose();
   }
 
@@ -107,8 +120,8 @@ class _SignupScreenState extends State<SignupScreen> {
                       Text(
                         'Join our network of waste collectors',
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
+                              color: AppColors.textSecondary,
+                            ),
                       ),
 
                       const SizedBox(height: AppDimens.paddingXL),
@@ -118,7 +131,8 @@ class _SignupScreenState extends State<SignupScreen> {
                         label: 'Full Name',
                         hint: 'Enter your full name',
                         controller: _nameController,
-                        textInputAction: TextInputAction.next,
+                        focusNode: _nameFocus,
+                        nextFocus: _emailFocus,
                         prefixIcon: const Icon(Icons.person_outline),
                         validator: ValidationHelper.validateName,
                       ),
@@ -131,7 +145,8 @@ class _SignupScreenState extends State<SignupScreen> {
                         hint: 'Enter your email',
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
-                        textInputAction: TextInputAction.next,
+                        focusNode: _emailFocus,
+                        nextFocus: _phoneFocus,
                         prefixIcon: const Icon(Icons.email_outlined),
                         validator: ValidationHelper.validateEmail,
                       ),
@@ -144,7 +159,8 @@ class _SignupScreenState extends State<SignupScreen> {
                         hint: 'Enter your phone number',
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
-                        textInputAction: TextInputAction.next,
+                        focusNode: _phoneFocus,
+                        nextFocus: _passwordFocus,
                         prefixIcon: const Icon(Icons.phone_outlined),
                         validator: ValidationHelper.validatePhone,
                       ),
@@ -157,7 +173,8 @@ class _SignupScreenState extends State<SignupScreen> {
                         hint: 'Create a password',
                         controller: _passwordController,
                         obscureText: _obscurePassword,
-                        textInputAction: TextInputAction.next,
+                        focusNode: _passwordFocus,
+                        nextFocus: _confirmPasswordFocus,
                         prefixIcon: const Icon(Icons.lock_outline),
                         suffixIcon: IconButton(
                           icon: Icon(
@@ -182,6 +199,7 @@ class _SignupScreenState extends State<SignupScreen> {
                         hint: 'Confirm your password',
                         controller: _confirmPasswordController,
                         obscureText: _obscureConfirmPassword,
+                        focusNode: _confirmPasswordFocus,
                         textInputAction: TextInputAction.done,
                         prefixIcon: const Icon(Icons.lock_outline),
                         suffixIcon: IconButton(
@@ -199,9 +217,9 @@ class _SignupScreenState extends State<SignupScreen> {
                         ),
                         validator: (value) =>
                             ValidationHelper.validateConfirmPassword(
-                              value,
-                              _passwordController.text,
-                            ),
+                          value,
+                          _passwordController.text,
+                        ),
                       ),
 
                       const SizedBox(height: AppDimens.paddingM),

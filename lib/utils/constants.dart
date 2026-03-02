@@ -67,6 +67,12 @@ class AppColors {
     end: Alignment.bottomCenter,
     colors: [Color(0xFFF5EBD7), Color(0xFFFAF8F3)],
   );
+
+  static const LinearGradient primaryLightGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF5E7A29), Color(0xFF6B8A35)],
+  );
 }
 
 /// App Dimensions

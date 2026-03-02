@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../models/models.dart';
+import '../services/auth_service.dart';
+import '../services/firestore_service.dart';
 
 /// Collector Provider for managing collector profile state
 class CollectorProvider extends ChangeNotifier {
@@ -19,7 +21,7 @@ class CollectorProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Toggle online/offline status
+  /// Toggle online/offline status - saves to Firestore
   Future<void> toggleOnlineStatus() async {
     if (_collector == null) return;
 
@@ -27,10 +29,12 @@ class CollectorProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Simulate API call
-      await Future.delayed(const Duration(milliseconds: 300));
+      final newStatus = !_collector!.isOnline;
 
-      _collector = _collector!.copyWith(isOnline: !_collector!.isOnline);
+      // Update in Firestore
+      await FirestoreService.updateOnlineStatus(_collector!.id, newStatus);
+
+      _collector = _collector!.copyWith(isOnline: newStatus);
       _isLoading = false;
       notifyListeners();
     } catch (e) {
@@ -40,7 +44,7 @@ class CollectorProvider extends ChangeNotifier {
     }
   }
 
-  /// Update collector profile
+  /// Update collector profile - saves to Firestore
   Future<bool> updateProfile({
     String? name,
     String? phone,
@@ -53,13 +57,41 @@ class CollectorProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Simulate API call
-      await Future.delayed(const Duration(milliseconds: 500));
-
       _collector = _collector!.copyWith(
         name: name ?? _collector!.name,
         phone: phone ?? _collector!.phone,
         photoUrl: photoUrl ?? _collector!.photoUrl,
+      );
+
+      // Save to Firestore
+      await AuthService.updateCollectorProfile(_collector!);
+
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Update vehicle details - saves to Firestore
+  Future<bool> updateVehicleDetails(VehicleDetails vehicle) async {
+    if (_collector == null) return false;
+
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      _collector = _collector!.copyWith(vehicle: vehicle);
+
+      // Save to Firestore
+      await FirestoreService.updateCollectorFields(
+        _collector!.id,
+        {'vehicle': vehicle.toJson()},
       );
 
       _isLoading = false;
@@ -73,8 +105,8 @@ class CollectorProvider extends ChangeNotifier {
     }
   }
 
-  /// Update vehicle details
-  Future<bool> updateVehicleDetails(VehicleDetails vehicle) async {
+  /// Update bank details - saves to Firestore
+  Future<bool> updateBankDetails(BankDetails bankDetails) async {
     if (_collector == null) return false;
 
     _isLoading = true;
@@ -82,10 +114,13 @@ class CollectorProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Simulate API call
-      await Future.delayed(const Duration(milliseconds: 500));
+      _collector = _collector!.copyWith(bankDetails: bankDetails);
 
-      _collector = _collector!.copyWith(vehicle: vehicle);
+      // Save to Firestore
+      await FirestoreService.updateCollectorFields(
+        _collector!.id,
+        {'bank_details': bankDetails.toJson()},
+      );
 
       _isLoading = false;
       notifyListeners();
@@ -98,28 +133,20 @@ class CollectorProvider extends ChangeNotifier {
     }
   }
 
-  /// Update bank details
-  Future<bool> updateBankDetails(BankDetails bankDetails) async {
-    if (_collector == null) return false;
-
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
+  /// Reload collector from Firestore
+  Future<void> refreshFromFirestore() async {
+    if (_collector == null) return;
 
     try {
-      // Simulate API call
-      await Future.delayed(const Duration(milliseconds: 500));
-
-      _collector = _collector!.copyWith(bankDetails: bankDetails);
-
-      _isLoading = false;
-      notifyListeners();
-      return true;
+      final updatedCollector =
+          await FirestoreService.getCollector(_collector!.id);
+      if (updatedCollector != null) {
+        _collector = updatedCollector;
+        notifyListeners();
+      }
     } catch (e) {
       _error = e.toString();
-      _isLoading = false;
       notifyListeners();
-      return false;
     }
   }
 

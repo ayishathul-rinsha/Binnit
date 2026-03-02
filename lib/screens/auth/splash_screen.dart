@@ -75,6 +75,9 @@ class _SplashScreenState extends State<SplashScreen>
         Navigator.pushReplacementNamed(context, Routes.languageSelection);
       } else if (!onboardingProvider.riderRegistered) {
         Navigator.pushReplacementNamed(context, Routes.becomeRider);
+      } else if (authProvider.isLoggedIn) {
+        // Rider registered and already logged in → go to dashboard
+        Navigator.pushReplacementNamed(context, Routes.main);
       } else {
         Navigator.pushReplacementNamed(context, Routes.login);
       }

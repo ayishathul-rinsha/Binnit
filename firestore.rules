@@ -1,0 +1,28 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users collection - collectors can read/write their own data
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null;
+    }
+
+    // Pickup requests - authenticated users can read, collectors can update
+    match /pickup_requests/{pickupId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null;
+    }
+
+    // Earnings - collectors can read their own earnings
+    match /earnings/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+
+      match /transactions/{transactionId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+  }
+}

@@ -1,8 +1,9 @@
 import 'package:flutter/foundation.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/models.dart';
 import '../services/auth_service.dart';
 
-/// Authentication Provider for state management
+/// Authentication Provider for state management - Firebase Auth
 class AuthProvider extends ChangeNotifier {
   Collector? _collector;
   bool _isLoading = false;
@@ -15,14 +16,15 @@ class AuthProvider extends ChangeNotifier {
   bool get isLoggedIn => _isLoggedIn;
   String? get error => _error;
 
-  /// Initialize auth state from storage
+  /// Initialize auth state from Firebase
   Future<void> initialize() async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      final isLoggedIn = await AuthService.isLoggedIn();
-      if (isLoggedIn) {
+      // Check Firebase Auth state
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
         final storedUser = await AuthService.getStoredUser();
         if (storedUser != null) {
           _collector = storedUser;
@@ -37,7 +39,7 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// Login
+  /// Login with Firebase Auth
   Future<bool> login({required String email, required String password}) async {
     _isLoading = true;
     _error = null;
@@ -66,7 +68,7 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// Signup
+  /// Signup with Firebase Auth
   Future<bool> signup({
     required String name,
     required String email,
@@ -105,7 +107,7 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// Forgot password
+  /// Forgot password - sends Firebase reset email
   Future<bool> forgotPassword({required String email}) async {
     _isLoading = true;
     _error = null;
@@ -128,7 +130,7 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// Logout
+  /// Logout from Firebase
   Future<void> logout() async {
     _isLoading = true;
     notifyListeners();
@@ -143,6 +145,12 @@ class AuthProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  /// Update local collector data (after profile edits)
+  void updateCollector(Collector collector) {
+    _collector = collector;
+    notifyListeners();
   }
 
   /// Clear error

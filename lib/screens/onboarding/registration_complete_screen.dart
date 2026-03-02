@@ -124,7 +124,7 @@ class RegistrationCompleteScreen extends StatelessWidget {
                   onPressed: () {
                     Navigator.pushNamedAndRemoveUntil(
                       context,
-                      Routes.login,
+                      Routes.main,
                       (route) => false,
                     );
                   },
@@ -137,7 +137,7 @@ class RegistrationCompleteScreen extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    l10n.goToLogin,
+                    l10n.goToLogin, // Goes to dashboard now
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
