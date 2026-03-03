@@ -287,54 +287,161 @@ function updateRequestBadge() {
     if (badge) badge.textContent = remaining;
 }
 
-// ─── Real-time Simulations ────────────────────────────────────
-function updateBinLevels() {
-    const fillLevels = document.querySelectorAll('#binActivityTable td:nth-child(3) .fill-inner');
-    fillLevels.forEach(bar => {
-        const current = parseInt(bar.style.width);
-        if (current < 95) {
-            const newLevel = Math.min(current + Math.floor(Math.random() * 3), 100);
-            bar.style.width = newLevel + '%';
-            bar.style.background = newLevel >= 80 ? '#ef4444' : newLevel >= 60 ? '#f59e0b' : '#10b981';
+// ─── Firebase Real-time DB Integration ───────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    if (typeof firebase === 'undefined' || !firebase.apps.length) return;
 
-            const span = bar.closest('td').querySelector('span') || bar.parentElement.nextElementSibling;
-            // Update text in the parent td
-            const td = bar.closest('td');
-            const spanEl = td ? td.querySelector('span') : null;
-            // no text span in fill bar; skip
+    const db = firebase.database();
+
+    // Clear all dummy table contents first
+    const tablesToClear = [
+        'binActivityTable', 'overviewNormalBinsTable', 'smartBinsTable',
+        'normalBinsTable', 'collectionsTable', 'routesTable', 'usersTable',
+        'requestsTable', 'txHistoryTable', 'subscriptionsTable'
+    ];
+    tablesToClear.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            const tbody = el.querySelector('tbody');
+            if (tbody) tbody.innerHTML = '';
         }
     });
-}
 
-function updateTimestamps() {
-    const timestamps = document.querySelectorAll('#binActivityTable td:nth-child(5)');
-    const times = ['Just now', '1 min ago', '2 mins ago', '4 mins ago', '6 mins ago', '10 mins ago'];
-    timestamps.forEach(cell => {
-        cell.textContent = times[Math.floor(Math.random() * times.length)];
+    const getFillColor = (level) => level >= 80 ? '#ef4444' : level >= 60 ? '#f59e0b' : '#10b981';
+
+    // 1. Fetch Smart Bins
+    db.ref('smart_bins').on('value', (snapshot) => {
+        const data = snapshot.val();
+        const smartTable = document.querySelector('#smartBinsTable tbody');
+        const activityTable = document.querySelector('#binActivityTable tbody');
+        if (smartTable) smartTable.innerHTML = '';
+        if (activityTable) activityTable.innerHTML = '';
+
+        if (data) {
+            Object.keys(data).forEach(key => {
+                const bin = data[key];
+                const tr = document.createElement('tr');
+                const fillLvl = bin.fillLevel || 0;
+                const fillHTML = `<div class="fill-bar"><div class="fill-inner" style="width:${fillLvl}%;background:${getFillColor(fillLvl)}"></div><span>${fillLvl}%</span></div>`;
+                const statusHTML = `<span class="status ${bin.status === 'Online' ? 'online' : 'offline'}">${bin.status || 'Unknown'}</span>`;
+
+                tr.innerHTML = `
+                    <td>${bin.id || key}</td>
+                    <td>${bin.location || 'Unknown'}</td>
+                    <td>${bin.type || 'General'}</td>
+                    <td>${fillHTML}</td>
+                    <td>${statusHTML}</td>
+                    <td><button class="btn btn-primary">View</button><button class="btn btn-success">Collect</button></td>
+                `;
+                if (smartTable) smartTable.appendChild(tr);
+
+                const trAct = document.createElement('tr');
+                trAct.innerHTML = `
+                    <td>${bin.id || key}</td>
+                    <td>${bin.location || 'Unknown'}</td>
+                    <td>${fillHTML}</td>
+                    <td>${statusHTML}</td>
+                    <td>${bin.lastUpdated || 'Just now'}</td>
+                `;
+                if (activityTable) activityTable.appendChild(trAct);
+            });
+        }
     });
-}
 
-function updateStatistics() {
-    const el = document.getElementById('activeCollections');
-    if (el) {
-        const curr = parseInt(el.textContent);
-        el.textContent = Math.max(10, curr + (Math.random() > 0.5 ? 1 : -1));
-    }
-}
+    // 2. Fetch Normal Bins
+    db.ref('normal_bins').on('value', (snapshot) => {
+        const data = snapshot.val();
+        const normalTable = document.querySelector('#normalBinsTable tbody');
+        const overviewNormalTable = document.querySelector('#overviewNormalBinsTable tbody');
+        if (normalTable) normalTable.innerHTML = '';
+        if (overviewNormalTable) overviewNormalTable.innerHTML = '';
 
-setInterval(updateBinLevels, 5000);
-setInterval(updateTimestamps, 10000);
-setInterval(updateStatistics, 15000);
+        if (data) {
+            Object.keys(data).forEach(key => {
+                const bin = data[key];
+                const statusClass = bin.status === 'Collected' ? 'online' : bin.status === 'Pending' ? 'pending' : 'offline';
 
-// ─── Notification Badge Simulation ───────────────────────────
-function checkNotifications() {
-    const badge = document.getElementById('requestsBadge');
-    if (badge && Math.random() > 0.8) {
-        const curr = parseInt(badge.textContent) || 0;
-        badge.textContent = curr + 1;
-    }
-}
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${bin.location || 'Unknown'}</td>
+                    <td>${bin.type || 'General'}</td>
+                    <td>${bin.scheduledDate || '-'}</td>
+                    <td>${bin.scheduledTime || '-'}</td>
+                    <td><span class="status ${statusClass}">${bin.status || 'Pending'}</span></td>
+                    <td><button class="btn btn-primary">View</button><button class="btn btn-success">Collect</button></td>
+                `;
+                if (normalTable) normalTable.appendChild(tr);
 
-setInterval(checkNotifications, 30000);
+                const trOver = document.createElement('tr');
+                trOver.innerHTML = `
+                    <td>${bin.location || 'Unknown'}</td>
+                    <td>${bin.type || 'General'}</td>
+                    <td>${bin.scheduledDate || '-'}</td>
+                    <td>${bin.collector || 'Unassigned'}</td>
+                    <td><span class="status ${statusClass}">${bin.status || 'Pending'}</span></td>
+                `;
+                if (overviewNormalTable) overviewNormalTable.appendChild(trOver);
+            });
+        }
+    });
+
+    // 3. Generic setup for other collections
+    const setupFetch = (path, tableSelector, rowBuilder) => {
+        db.ref(path).on('value', (snapshot) => {
+            const data = snapshot.val();
+            const table = document.querySelector(tableSelector + ' tbody');
+            if (table) table.innerHTML = '';
+            if (data && table) {
+                Object.keys(data).forEach(key => {
+                    const tr = rowBuilder(key, data[key]);
+                    if (tr) table.appendChild(tr);
+                });
+            }
+        });
+    };
+
+    setupFetch('collections', '#collectionsTable', (key, item) => {
+        const tr = document.createElement('tr');
+        const s = item.status === 'Completed' ? 'online' : item.status === 'In Progress' ? 'pending' : 'offline';
+        tr.innerHTML = `<td>${item.id || key}</td><td>${item.zone || '-'}</td><td>${item.collector || '-'}</td><td>${item.binsCollected || 0}</td><td><span class="status ${s}">${item.status || 'Scheduled'}</span></td><td>${item.date || '-'}</td><td><button class="btn btn-primary">View</button></td>`;
+        return tr;
+    });
+
+    setupFetch('routes', '#routesTable', (key, item) => {
+        const tr = document.createElement('tr');
+        const s = item.status === 'Active' ? 'online' : item.status === 'In Progress' ? 'pending' : 'offline';
+        tr.innerHTML = `<td>${item.id || key}</td><td>${item.name || '-'}</td><td>${item.zone || '-'}</td><td>${item.bins || 0}</td><td>${item.distance || 0}</td><td>${item.assignedCollector || '-'}</td><td><span class="status ${s}">${item.status || 'Idle'}</span></td><td><button class="btn btn-primary">View</button></td>`;
+        return tr;
+    });
+
+    setupFetch('users', '#usersTable', (key, item) => {
+        const tr = document.createElement('tr');
+        const s = item.status === 'Active' ? 'online' : 'offline';
+        tr.innerHTML = `<td>${item.name || '-'}</td><td>${item.email || '-'}</td><td>${item.role || 'User'}</td><td>${item.plan || 'Free'}</td><td><span class="status ${s}">${item.status || 'Active'}</span></td><td>${item.joined || '-'}</td><td><button class="btn btn-warning">Edit</button></td>`;
+        return tr;
+    });
+
+    setupFetch('requests', '#requestsTable', (key, item) => {
+        const tr = document.createElement('tr');
+        const pCls = item.priority === 'High' ? 'high' : item.priority === 'Medium' ? 'medium' : 'low';
+        tr.innerHTML = `<td>${item.id || key}</td><td>${item.location || '-'}</td><td><span class="priority ${pCls}">${item.priority || 'Low'}</span></td><td>${item.user || '-'}</td><td><span class="status pending">${item.status || 'Pending'}</span></td><td>${item.date || '-'}</td><td><button class="btn btn-success">Assign</button></td>`;
+        setTimeout(updateRequestBadge, 50);
+        return tr;
+    });
+
+    setupFetch('transactions', '#txHistoryTable', (key, item) => {
+        const tr = document.createElement('tr');
+        const s = item.status === 'Success' ? 'online' : item.status === 'Pending' ? 'pending' : 'offline';
+        tr.innerHTML = `<td>${item.id || key}</td><td>${item.name || '-'}</td><td>${item.email || '-'}</td><td>${item.type || '-'}</td><td><span class="status ${s}">${item.status || 'Pending'}</span></td><td>${item.amount || '-'}</td><td>${item.date || '-'}</td>`;
+        return tr;
+    });
+
+    setupFetch('subscriptions', '#subscriptionsTable', (key, item) => {
+        const tr = document.createElement('tr');
+        const s = item.status === 'Active' ? 'online' : item.status === 'Pending' ? 'pending' : 'offline';
+        tr.innerHTML = `<td>${item.id || key}</td><td>${item.user || '-'}</td><td>${item.plan || 'Free'}</td><td>${item.started || '-'}</td><td><span class="status ${s}">${item.status || 'Active'}</span></td><td>${item.renewal || '-'}</td><td>${item.amount || '-'}</td>`;
+        return tr;
+    });
+});
 
 console.log('✅ Emptico Admin Dashboard initialized successfully!');
