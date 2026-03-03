@@ -307,7 +307,7 @@ The app features **fully custom-rendered maps** using Flutter's `CustomPainter`:
 
 | Role        | Name                      |
 | ----------- | ------------------------- |
-| Developer   | **Ayishathul Rinsha**     |
+| Developer   | **DEVIKA S KUMAR**     |
 
 ---
 
