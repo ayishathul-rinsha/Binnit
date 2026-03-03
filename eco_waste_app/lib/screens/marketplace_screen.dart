@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../main.dart' show languageService;
 
 class MarketplaceScreen extends StatefulWidget {
   const MarketplaceScreen({super.key});
@@ -186,8 +187,8 @@ class _MarketplaceScreenState extends State<MarketplaceScreen>
         onPressed: _showSellDialog,
         backgroundColor: AppTheme.primaryGreen,
         icon: const Icon(Icons.add_rounded, color: Colors.white),
-        label: const Text(
-          'Sell Item',
+        label: Text(
+          languageService.t('sell_new_item'),
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.w600,
@@ -220,12 +221,12 @@ class _MarketplaceScreenState extends State<MarketplaceScreen>
             const SizedBox(width: 4),
           ] else
             const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Marketplace',
+                  languageService.t('marketplace'),
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -292,14 +293,14 @@ class _MarketplaceScreenState extends State<MarketplaceScreen>
             ),
           ],
         ),
-        child: const Row(
+        child: Row(
           children: [
             Icon(Icons.search_rounded, color: AppTheme.textLight, size: 22),
             SizedBox(width: 10),
             Expanded(
               child: TextField(
                 decoration: InputDecoration(
-                  hintText: 'Search recyclables...',
+                  hintText: languageService.t('search_items'),
                   hintStyle: TextStyle(
                     color: AppTheme.textLight,
                     fontSize: 14,
@@ -355,8 +356,8 @@ class _MarketplaceScreenState extends State<MarketplaceScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Your Earnings',
+                  Text(
+                    languageService.t('total_earnings'),
                     style: TextStyle(
                       color: Colors.white70,
                       fontSize: 12,
@@ -416,9 +417,9 @@ class _MarketplaceScreenState extends State<MarketplaceScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20),
-          child: Text('Today\'s Market Rates', style: AppTheme.headingSmall),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Text(languageService.t('market_rates'), style: AppTheme.headingSmall),
         ),
         const SizedBox(height: 12),
         SingleChildScrollView(

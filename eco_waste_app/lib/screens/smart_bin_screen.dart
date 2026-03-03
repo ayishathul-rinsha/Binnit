@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../main.dart' show languageService;
 
 class SmartBinScreen extends StatefulWidget {
   const SmartBinScreen({super.key});
@@ -140,12 +141,12 @@ class _SmartBinScreenState extends State<SmartBinScreen>
             const SizedBox(width: 4),
           ] else
             const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Smart Bin',
+                  languageService.t('smart_bin_title'),
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -323,12 +324,12 @@ class _SmartBinScreenState extends State<SmartBinScreen>
               ),
             ),
             const SizedBox(width: 14),
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Auto-Schedule Active 🤖',
+                    languageService.t('auto_schedule'),
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
@@ -337,7 +338,7 @@ class _SmartBinScreenState extends State<SmartBinScreen>
                   ),
                   SizedBox(height: 4),
                   Text(
-                    'Bins reaching 80% will automatically schedule a pickup. You can disable this per bin.',
+                    languageService.t('auto_schedule_desc'),
                     style: TextStyle(
                       fontSize: 12,
                       color: Color(0xFF795548),
@@ -538,7 +539,7 @@ class _SmartBinScreenState extends State<SmartBinScreen>
                     children: [
                       Text(
                         bin['autoScheduled']
-                            ? 'Auto-scheduled pickup'
+                            ? languageService.t('auto_pickup_scheduled')
                             : 'Manual scheduling',
                         style: const TextStyle(
                           fontSize: 12,
@@ -557,7 +558,7 @@ class _SmartBinScreenState extends State<SmartBinScreen>
                   ),
                 ),
                 Text(
-                  'Last: ${bin['lastPickup']}',
+                  '${languageService.t('last_emptied')}: ${bin['lastPickup']}',
                   style: const TextStyle(
                     fontSize: 11,
                     color: AppTheme.textLight,
@@ -654,7 +655,7 @@ class _SmartBinScreenState extends State<SmartBinScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Weekly Fill History', style: AppTheme.headingSmall),
+          Text(languageService.t('weekly_stats'), style: AppTheme.headingSmall),
           const SizedBox(height: 14),
           Container(
             padding: const EdgeInsets.all(18),

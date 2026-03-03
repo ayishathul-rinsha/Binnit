@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/services.dart';
 import '../theme/app_theme.dart';
+import '../services/auth_service.dart';
+import '../main.dart' show languageService;
+import 'home_screen.dart';
 import 'phone_verification_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -15,9 +19,11 @@ class _SignUpScreenState extends State<SignUpScreen>
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
+  String _selectedCountryCode = '+91';
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _agreeToTerms = false;
@@ -59,28 +65,27 @@ class _SignUpScreenState extends State<SignUpScreen>
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
+    _phoneController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     _animationController.dispose();
     super.dispose();
   }
 
+  final AuthService _authService = AuthService();
+
   Future<void> _handleGoogleSignIn() async {
     setState(() => _isLoading = true);
 
-    // Simulate Google Sign-In process
-    await Future.delayed(const Duration(seconds: 2));
-
+    // TODO: Implement Google Sign-In with google_sign_in package
     if (mounted) {
       setState(() => _isLoading = false);
-      
-      // Navigate to phone verification after Google sign-in
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const PhoneVerificationScreen(
-            isNewUser: true,
-          ),
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Google Sign-In coming soon! Use email signup.'),
+          backgroundColor: AppTheme.primaryGreen,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
     }
@@ -102,21 +107,51 @@ class _SignUpScreenState extends State<SignUpScreen>
 
     setState(() => _isLoading = true);
 
-    // Simulate sign up process
-    await Future.delayed(const Duration(seconds: 2));
-
-    if (mounted) {
-      setState(() => _isLoading = false);
+    try {
+      final phoneNumber = '$_selectedCountryCode${_phoneController.text.trim()}';
       
-      // Navigate to phone verification
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const PhoneVerificationScreen(
-            isNewUser: true,
-          ),
-        ),
+      await _authService.signUpWithEmail(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+        fullName: _nameController.text.trim(),
+        phone: phoneNumber,
       );
+
+      if (mounted) {
+        setState(() => _isLoading = false);
+        
+        // Navigate to Phone Verification after successful sign up
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PhoneVerificationScreen(
+              isNewUser: true,
+              phoneNumber: _phoneController.text.trim(),
+              countryCode: _selectedCountryCode,
+            ),
+          ),
+        );
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Account created! Now verify your phone.'),
+            backgroundColor: AppTheme.successColor,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AuthService.getErrorMessage(e)),
+            backgroundColor: AppTheme.errorColor,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
     }
   }
 
@@ -187,13 +222,13 @@ class _SignUpScreenState extends State<SignUpScreen>
           ),
         ),
         const SizedBox(height: 24),
-        const Text(
-          'Create Account',
+        Text(
+          languageService.t('create_account'),
           style: AppTheme.headingLarge,
         ),
         const SizedBox(height: 8),
         Text(
-          'Join us and start your eco-friendly journey',
+          languageService.t('join_eco'),
           style: AppTheme.bodyMedium.copyWith(
             color: AppTheme.textSecondary,
             fontSize: 15,
@@ -241,7 +276,7 @@ class _SignUpScreenState extends State<SignUpScreen>
             ),
             const SizedBox(width: 12),
             Text(
-              'Continue with Google',
+              languageService.t('continue_google'),
               style: AppTheme.bodyLarge.copyWith(
                 fontWeight: FontWeight.w500,
               ),
@@ -271,7 +306,7 @@ class _SignUpScreenState extends State<SignUpScreen>
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Text(
-            'or sign up with email',
+            languageService.t('or_signup_email'),
             style: AppTheme.bodySmall.copyWith(
               color: AppTheme.textLight,
             ),
@@ -306,12 +341,12 @@ class _SignUpScreenState extends State<SignUpScreen>
             textCapitalization: TextCapitalization.words,
             style: AppTheme.bodyLarge,
             decoration: AppTheme.inputDecoration(
-              hintText: 'Full Name',
+              hintText: languageService.t('full_name'),
               prefixIcon: Icons.person_outline_rounded,
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Please enter your name';
+                return languageService.t('enter_name');
               }
               return null;
             },
@@ -324,18 +359,79 @@ class _SignUpScreenState extends State<SignUpScreen>
             keyboardType: TextInputType.emailAddress,
             style: AppTheme.bodyLarge,
             decoration: AppTheme.inputDecoration(
-              hintText: 'Email Address',
+              hintText: languageService.t('email_address'),
               prefixIcon: Icons.email_outlined,
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Please enter your email';
+                return languageService.t('enter_email');
               }
               if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                return 'Please enter a valid email';
+                return languageService.t('valid_email');
               }
               return null;
             },
+          ),
+          const SizedBox(height: 16),
+
+          // Phone Number Field
+          Container(
+            decoration: BoxDecoration(
+              color: AppTheme.inputBackground,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: AppTheme.dividerColor.withOpacity(0.5),
+              ),
+            ),
+            child: Row(
+              children: [
+                // Country code dropdown
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      right: BorderSide(
+                        color: AppTheme.dividerColor.withOpacity(0.5),
+                      ),
+                    ),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _selectedCountryCode,
+                      items: const [
+                        DropdownMenuItem(value: '+91', child: Text('🇮🇳 +91')),
+                        DropdownMenuItem(value: '+1', child: Text('🇺🇸 +1')),
+                        DropdownMenuItem(value: '+44', child: Text('🇬🇧 +44')),
+                      ],
+                      onChanged: (value) {
+                        setState(() => _selectedCountryCode = value!);
+                      },
+                      style: AppTheme.bodyLarge.copyWith(fontWeight: FontWeight.w500),
+                      icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.textLight),
+                    ),
+                  ),
+                ),
+                // Phone field
+                Expanded(
+                  child: TextFormField(
+                    controller: _phoneController,
+                    keyboardType: TextInputType.phone,
+                    style: AppTheme.bodyLarge,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(10)],
+                    decoration: InputDecoration(
+                      hintText: languageService.t('phone_number'),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 16),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) return languageService.t('enter_phone_num');
+                      if (value.length < 10) return languageService.t('valid_number');
+                      return null;
+                    },
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 16),
 
@@ -345,7 +441,7 @@ class _SignUpScreenState extends State<SignUpScreen>
             obscureText: _obscurePassword,
             style: AppTheme.bodyLarge,
             decoration: AppTheme.inputDecoration(
-              hintText: 'Password',
+              hintText: languageService.t('password'),
               prefixIcon: Icons.lock_outline_rounded,
               suffixIcon: IconButton(
                 icon: Icon(
@@ -362,10 +458,10 @@ class _SignUpScreenState extends State<SignUpScreen>
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Please enter a password';
+                return languageService.t('enter_a_password');
               }
               if (value.length < 8) {
-                return 'Password must be at least 8 characters';
+                return languageService.t('password_min');
               }
               return null;
             },
@@ -378,7 +474,7 @@ class _SignUpScreenState extends State<SignUpScreen>
             obscureText: _obscureConfirmPassword,
             style: AppTheme.bodyLarge,
             decoration: AppTheme.inputDecoration(
-              hintText: 'Confirm Password',
+              hintText: languageService.t('confirm_password'),
               prefixIcon: Icons.lock_outline_rounded,
               suffixIcon: IconButton(
                 icon: Icon(
@@ -396,10 +492,10 @@ class _SignUpScreenState extends State<SignUpScreen>
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Please confirm your password';
+                return languageService.t('confirm_pass');
               }
               if (value != _passwordController.text) {
-                return 'Passwords do not match';
+                return languageService.t('passwords_no_match');
               }
               return null;
             },
@@ -436,9 +532,9 @@ class _SignUpScreenState extends State<SignUpScreen>
                 color: AppTheme.textSecondary,
               ),
               children: [
-                const TextSpan(text: 'I agree to the '),
+                TextSpan(text: languageService.t('i_agree')),
                 TextSpan(
-                  text: 'Terms of Service',
+                  text: languageService.t('terms_service'),
                   style: const TextStyle(
                     color: AppTheme.primaryGreen,
                     fontWeight: FontWeight.w600,
@@ -449,9 +545,9 @@ class _SignUpScreenState extends State<SignUpScreen>
                       // Handle Terms tap
                     },
                 ),
-                const TextSpan(text: ' and '),
+                TextSpan(text: languageService.t('and')),
                 TextSpan(
-                  text: 'Privacy Policy',
+                  text: languageService.t('privacy_policy'),
                   style: const TextStyle(
                     color: AppTheme.primaryGreen,
                     fontWeight: FontWeight.w600,
@@ -488,8 +584,8 @@ class _SignUpScreenState extends State<SignUpScreen>
                   strokeWidth: 2.5,
                 ),
               )
-            : const Text(
-                'Create Account',
+            : Text(
+                languageService.t('create_account'),
                 style: AppTheme.buttonText,
               ),
       ),
@@ -502,9 +598,9 @@ class _SignUpScreenState extends State<SignUpScreen>
         text: TextSpan(
           style: AppTheme.bodyMedium,
           children: [
-            const TextSpan(text: 'Already have an account? '),
+            TextSpan(text: languageService.t('already_account')),
             TextSpan(
-              text: 'Sign In',
+              text: languageService.t('sign_in'),
               style: const TextStyle(
                 color: AppTheme.primaryGreen,
                 fontWeight: FontWeight.w600,

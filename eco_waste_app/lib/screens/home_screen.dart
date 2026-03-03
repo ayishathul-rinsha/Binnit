@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../theme/app_theme.dart';
+import '../services/auth_service.dart';
+import '../services/firestore_service.dart';
+import '../main.dart' show languageService;
 import 'schedule_pickup_screen.dart';
 import 'smart_bin_screen.dart';
 import 'history_screen.dart';
@@ -94,11 +98,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             unselectedFontSize: 11,
             elevation: 0,
             items: [
-              _buildNavItem(Icons.home_rounded, Icons.home_outlined, 'Home', 0),
-              _buildNavItem(Icons.local_shipping_rounded, Icons.local_shipping_outlined, 'Pickup', 1),
-              _buildNavItem(Icons.delete_rounded, Icons.delete_outline_rounded, 'Smart Bin', 2),
-              _buildNavItem(Icons.history_rounded, Icons.history, 'History', 3),
-              _buildNavItem(Icons.storefront_rounded, Icons.storefront_outlined, 'Market', 4),
+              _buildNavItem(Icons.home_rounded, Icons.home_outlined, languageService.t('home'), 0),
+              _buildNavItem(Icons.local_shipping_rounded, Icons.local_shipping_outlined, languageService.t('pickup'), 1),
+              _buildNavItem(Icons.delete_rounded, Icons.delete_outline_rounded, languageService.t('smart_bin'), 2),
+              _buildNavItem(Icons.history_rounded, Icons.history, languageService.t('history'), 3),
+              _buildNavItem(Icons.storefront_rounded, Icons.storefront_outlined, languageService.t('market'), 4),
             ],
           ),
         ),
@@ -139,29 +143,42 @@ class _HomeDashboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildTopBar(context),
-            const SizedBox(height: 8),
-            _buildWelcomeBanner(context),
-            const SizedBox(height: 24),
-            _buildQuickActions(context),
-            const SizedBox(height: 28),
-            _buildSmartBinOverview(context),
-            const SizedBox(height: 28),
-            _buildUpcomingPickup(context),
-            const SizedBox(height: 28),
-            _buildEcoImpact(context),
-            const SizedBox(height: 28),
-            _buildSubscriptionBanner(context),
-            const SizedBox(height: 100),
-          ],
-        ),
-      ),
+    final firestoreService = FirestoreService();
+
+    return StreamBuilder<DocumentSnapshot>(
+      stream: firestoreService.getUserProfileStream(),
+      builder: (context, snapshot) {
+        final userData = snapshot.data?.data() as Map<String, dynamic>?;
+        final fullName = userData?['fullName'] ?? 'Eco Hero';
+        final firstName = fullName.split(' ').first;
+        final ecoPoints = userData?['ecoPoints'] ?? 0;
+        final subscription = userData?['subscriptionPlan'] ?? 'Free';
+
+        return SafeArea(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildTopBar(context),
+                const SizedBox(height: 8),
+                _buildWelcomeBanner(context, firstName, ecoPoints, subscription),
+                const SizedBox(height: 24),
+                _buildQuickActions(context),
+                const SizedBox(height: 28),
+                _buildSmartBinOverview(context),
+                const SizedBox(height: 28),
+                _buildUpcomingPickup(context),
+                const SizedBox(height: 28),
+                _buildEcoImpact(context, userData),
+                const SizedBox(height: 28),
+                _buildSubscriptionBanner(context, subscription),
+                const SizedBox(height: 100),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -185,7 +202,7 @@ class _HomeDashboard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '📍 Koramangala, Bengaluru',
+                  'Koramangala, Bengaluru',
                   style: AppTheme.bodySmall.copyWith(
                     color: AppTheme.textSecondary,
                     fontSize: 12,
@@ -235,7 +252,7 @@ class _HomeDashboard extends StatelessWidget {
     );
   }
 
-  Widget _buildWelcomeBanner(BuildContext context) {
+  Widget _buildWelcomeBanner(BuildContext context, String name, int points, String plan) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
@@ -265,17 +282,17 @@ class _HomeDashboard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Good Morning! ☀️',
-                        style: TextStyle(
+                      Text(
+                        '${languageService.t('welcome_back_name')} $name',
+                        style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                       const SizedBox(height: 6),
-                      const Text(
-                        'Let\'s keep our\ncity clean today!',
+                      Text(
+                        languageService.t('keep_city_clean'),
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 22,
@@ -314,9 +331,9 @@ class _HomeDashboard extends StatelessWidget {
                 children: [
                   const Icon(Icons.star_rounded, color: Color(0xFFFFD700), size: 18),
                   const SizedBox(width: 6),
-                  const Text(
-                    '2,450 Eco Points earned',
-                    style: TextStyle(
+                  Text(
+                    '$points ${languageService.t('eco_points_earned')}',
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -329,9 +346,9 @@ class _HomeDashboard extends StatelessWidget {
                       color: Colors.white.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Text(
-                      'Gold',
-                      style: TextStyle(
+                    child: Text(
+                      plan,
+                      style: const TextStyle(
                         color: Color(0xFFFFD700),
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
@@ -353,14 +370,14 @@ class _HomeDashboard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Quick Actions', style: AppTheme.headingSmall),
+          Text(languageService.t('quick_actions'), style: AppTheme.headingSmall),
           const SizedBox(height: 16),
           Row(
             children: [
               _buildActionCard(
                 context,
                 icon: Icons.local_shipping_rounded,
-                label: 'Schedule\nPickup',
+                label: languageService.t('schedule_pickup'),
                 color: const Color(0xFF4A6741),
                 gradient: const [Color(0xFF4A6741), Color(0xFF6B8E5F)],
                 onTap: () => Navigator.push(context,
@@ -370,7 +387,7 @@ class _HomeDashboard extends StatelessWidget {
               _buildActionCard(
                 context,
                 icon: Icons.delete_rounded,
-                label: 'Smart\nBin',
+                label: languageService.t('smart_bin_action'),
                 color: const Color(0xFF2196F3),
                 gradient: const [Color(0xFF1976D2), Color(0xFF42A5F5)],
                 onTap: () => Navigator.push(context,
@@ -380,7 +397,7 @@ class _HomeDashboard extends StatelessWidget {
               _buildActionCard(
                 context,
                 icon: Icons.storefront_rounded,
-                label: 'Sell\nRecyclables',
+                label: languageService.t('sell_recyclables'),
                 color: const Color(0xFFFF9800),
                 gradient: const [Color(0xFFE65100), Color(0xFFFF9800)],
                 onTap: () => Navigator.push(context,
@@ -390,7 +407,7 @@ class _HomeDashboard extends StatelessWidget {
               _buildActionCard(
                 context,
                 icon: Icons.card_membership_rounded,
-                label: 'Plans &\nSubs',
+                label: languageService.t('plans_subs'),
                 color: const Color(0xFF9C27B0),
                 gradient: const [Color(0xFF7B1FA2), Color(0xFFBA68C8)],
                 onTap: () => Navigator.push(context,
@@ -468,12 +485,12 @@ class _HomeDashboard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Smart Bin Status', style: AppTheme.headingSmall),
+              Text(languageService.t('smart_bin_status'), style: AppTheme.headingSmall),
               GestureDetector(
                 onTap: () => Navigator.push(context,
                     MaterialPageRoute(builder: (_) => const SmartBinScreen())),
                 child: Text(
-                  'View All →',
+                  languageService.t('view_all'),
                   style: AppTheme.bodySmall.copyWith(
                     color: AppTheme.primaryGreen,
                     fontWeight: FontWeight.w600,
@@ -637,7 +654,7 @@ class _HomeDashboard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Upcoming Pickup', style: AppTheme.headingSmall),
+          Text(languageService.t('upcoming_pickup'), style: AppTheme.headingSmall),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(18),
@@ -674,8 +691,8 @@ class _HomeDashboard extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Scheduled Pickup',
+                          Text(
+                            languageService.t('scheduled_pickup'),
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -684,7 +701,7 @@ class _HomeDashboard extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '📅 Tomorrow, 9-11 AM',
+                            languageService.t('tomorrow'),
                             style: AppTheme.bodySmall.copyWith(
                               color: AppTheme.textSecondary,
                               fontSize: 12,
@@ -700,9 +717,9 @@ class _HomeDashboard extends StatelessWidget {
                         color: const Color(0xFFE8F5E9),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Text(
-                        'Confirmed',
-                        style: TextStyle(
+                      child: Text(
+                        languageService.t('confirmed'),
+                        style: const TextStyle(
                           color: Color(0xFF2E7D32),
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
@@ -736,7 +753,7 @@ class _HomeDashboard extends StatelessWidget {
                         onPressed: () => Navigator.push(context,
                             MaterialPageRoute(builder: (_) => const PickupDetailsScreen())),
                         icon: const Icon(Icons.info_outline_rounded, size: 18),
-                        label: const Text('Details'),
+                        label: Text(languageService.t('details')),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppTheme.primaryGreen,
                           side: const BorderSide(color: AppTheme.primaryGreen),
@@ -753,7 +770,7 @@ class _HomeDashboard extends StatelessWidget {
                         onPressed: () => Navigator.push(context,
                             MaterialPageRoute(builder: (_) => const PickupTrackingScreen())),
                         icon: const Icon(Icons.location_on_outlined, size: 18),
-                        label: const Text('Track'),
+                        label: Text(languageService.t('track')),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.primaryGreen,
                           foregroundColor: Colors.white,
@@ -794,13 +811,17 @@ class _HomeDashboard extends StatelessWidget {
     );
   }
 
-  Widget _buildEcoImpact(BuildContext context) {
+  Widget _buildEcoImpact(BuildContext context, Map<String, dynamic>? userData) {
+    final recycled = userData?['totalWasteRecycled']?.toString() ?? '0';
+    final pickups = userData?['totalPickups']?.toString() ?? '0';
+    final points = userData?['ecoPoints']?.toString() ?? '0';
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Your Eco Impact 🌿', style: AppTheme.headingSmall),
+          Text(languageService.t('eco_impact'), style: AppTheme.headingSmall),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(20),
@@ -818,21 +839,21 @@ class _HomeDashboard extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildImpactStat('120 Kg', 'Waste\nRecycled', Icons.recycling_rounded,
+                _buildImpactStat('$recycled Kg', languageService.t('waste_recycled'), Icons.recycling_rounded,
                     const Color(0xFF4CAF50)),
                 Container(
                   width: 1,
                   height: 50,
                   color: AppTheme.dividerColor.withOpacity(0.3),
                 ),
-                _buildImpactStat('45', 'Pickups\nCompleted', Icons.check_circle_rounded,
+                _buildImpactStat(pickups, languageService.t('pickups_completed'), Icons.check_circle_rounded,
                     const Color(0xFF2196F3)),
                 Container(
                   width: 1,
                   height: 50,
                   color: AppTheme.dividerColor.withOpacity(0.3),
                 ),
-                _buildImpactStat('₹2.4K', 'Earned\nBack', Icons.account_balance_wallet_rounded,
+                _buildImpactStat(points, languageService.t('eco_points'), Icons.star_rounded,
                     const Color(0xFFFF9800)),
               ],
             ),
@@ -876,7 +897,11 @@ class _HomeDashboard extends StatelessWidget {
     );
   }
 
-  Widget _buildSubscriptionBanner(BuildContext context) {
+  Widget _buildSubscriptionBanner(BuildContext context, String currentPlan) {
+    if (currentPlan == 'Pro' || currentPlan == 'EcoPro') {
+      return const SizedBox.shrink(); // Hide if already pro
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: GestureDetector(
@@ -918,8 +943,8 @@ class _HomeDashboard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Upgrade to EcoPro! ✨',
+                    Text(
+                      languageService.t('upgrade_eco_pro'),
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 16,
@@ -928,7 +953,7 @@ class _HomeDashboard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Unlimited pickups, priority scheduling & more',
+                      languageService.t('unlimited_pickups'),
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.8),
                         fontSize: 12,

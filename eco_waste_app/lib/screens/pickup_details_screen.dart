@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../theme/app_theme.dart';
+import '../main.dart' show languageService;
 import 'payment_screen.dart';
 
 class PickupDetailsScreen extends StatefulWidget {
@@ -203,9 +204,9 @@ class _PickupDetailsScreenState extends State<PickupDetailsScreen>
             ),
           ),
           const SizedBox(width: 8),
-          const Expanded(
+          Expanded(
             child: Text(
-              'Pickup Details',
+              languageService.t('pickup_details'),
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -310,7 +311,7 @@ class _PickupDetailsScreenState extends State<PickupDetailsScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Enter Weight', style: AppTheme.headingSmall),
+          Text(languageService.t('waste_weight'), style: AppTheme.headingSmall),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(20),
@@ -459,7 +460,7 @@ class _PickupDetailsScreenState extends State<PickupDetailsScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Waste Type', style: AppTheme.headingSmall),
+              Text(languageService.t('waste_type'), style: AppTheme.headingSmall),
               Text(
                 '${_selectedWasteTypes.length} selected',
                 style: AppTheme.bodySmall.copyWith(
@@ -577,7 +578,7 @@ class _PickupDetailsScreenState extends State<PickupDetailsScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Additional Options', style: AppTheme.headingSmall),
+          Text(languageService.t('additional_options'), style: AppTheme.headingSmall),
           const SizedBox(height: 14),
           Container(
             padding: const EdgeInsets.all(16),
@@ -648,7 +649,7 @@ class _PickupDetailsScreenState extends State<PickupDetailsScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Special Instructions', style: AppTheme.headingSmall),
+          Text(languageService.t('notes'), style: AppTheme.headingSmall),
           const SizedBox(height: 14),
           Container(
             decoration: BoxDecoration(
@@ -692,8 +693,8 @@ class _PickupDetailsScreenState extends State<PickupDetailsScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Price Estimate',
+            Text(
+              languageService.t('price_breakdown'),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -717,8 +718,8 @@ class _PickupDetailsScreenState extends State<PickupDetailsScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Total',
+                Text(
+                  languageService.t('total'),
                   style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.bold,
@@ -789,8 +790,8 @@ class _PickupDetailsScreenState extends State<PickupDetailsScreen>
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Total Amount',
+                  Text(
+                    languageService.t('total'),
                     style: TextStyle(fontSize: 12, color: AppTheme.textLight),
                   ),
                   Text(
@@ -829,11 +830,11 @@ class _PickupDetailsScreenState extends State<PickupDetailsScreen>
                     ),
                     elevation: 0,
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'Pay Now',
+                        languageService.t('pay_now'),
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,

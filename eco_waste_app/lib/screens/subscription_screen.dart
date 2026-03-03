@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../main.dart' show languageService;
 
 class SubscriptionScreen extends StatefulWidget {
   const SubscriptionScreen({super.key});
@@ -148,9 +149,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
             ),
           ),
           const SizedBox(width: 8),
-          const Expanded(
+          Expanded(
             child: Text(
-              'Subscription Plans',
+              languageService.t('subscription'),
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -269,12 +270,12 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
               child: const Icon(Icons.eco_rounded, color: Color(0xFFF9A825), size: 24),
             ),
             const SizedBox(width: 14),
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Current Plan: Basic',
+                    '${languageService.t('current_plan')}: ${languageService.t('basic_plan')}',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
@@ -319,7 +320,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Choose Your Plan', style: AppTheme.headingSmall),
+          Text(languageService.t('choose_plan'), style: AppTheme.headingSmall),
           const SizedBox(height: 14),
           ...List.generate(_plans.length, (index) {
             return Padding(
@@ -415,8 +416,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
                                 gradient: LinearGradient(colors: gradientColors),
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: const Text(
-                                'POPULAR',
+                              child: Text(
+                                languageService.t('popular').toUpperCase(),
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 9,
@@ -534,7 +535,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Why Subscribe?', style: AppTheme.headingSmall),
+          Text(languageService.t('benefits'), style: AppTheme.headingSmall),
           const SizedBox(height: 14),
           Row(
             children: [
@@ -758,7 +759,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Subscribed to ${plan['name']} plan! 🎉'),
+                        content: Text('Subscribed to ${plan['name']} plan!'),
                         backgroundColor: AppTheme.successColor,
                         behavior: SnackBarBehavior.floating,
                         shape: RoundedRectangleBorder(
@@ -775,8 +776,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
                     ),
                     elevation: 0,
                   ),
-                  child: const Text(
-                    'Subscribe Now',
+                  child: Text(
+                    languageService.t('subscribe_now'),
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,

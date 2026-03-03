@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../main.dart' show languageService;
 import 'pickup_details_screen.dart';
 
 class SchedulePickupScreen extends StatefulWidget {
@@ -190,9 +191,9 @@ class _SchedulePickupScreenState extends State<SchedulePickupScreen>
             ),
           ),
           const SizedBox(width: 8),
-          const Expanded(
+          Expanded(
             child: Text(
-              'Schedule Pickup',
+              languageService.t('schedule_pickup_title'),
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -207,13 +208,13 @@ class _SchedulePickupScreenState extends State<SchedulePickupScreen>
               color: AppTheme.primaryGreen.withOpacity(0.1),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(Icons.history_rounded, size: 16, color: AppTheme.primaryGreen),
                 SizedBox(width: 4),
                 Text(
-                  'History',
+                  languageService.t('history'),
                   style: TextStyle(
                     fontSize: 13,
                     color: AppTheme.primaryGreen,
@@ -283,8 +284,8 @@ class _SchedulePickupScreenState extends State<SchedulePickupScreen>
                           ),
                         ],
                       ),
-                      child: const Text(
-                        'Pickup Location',
+                      child: Text(
+                        languageService.t('pickup_location'),
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -374,7 +375,7 @@ class _SchedulePickupScreenState extends State<SchedulePickupScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Pickup Address', style: AppTheme.headingSmall),
+          Text(languageService.t('pickup_location'), style: AppTheme.headingSmall),
           const SizedBox(height: 14),
           ...List.generate(
             _addresses.length,
@@ -481,7 +482,7 @@ class _SchedulePickupScreenState extends State<SchedulePickupScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Pick Date & Time', style: AppTheme.headingSmall),
+          Text(languageService.t('select_date') + ' & ' + languageService.t('select_time'), style: AppTheme.headingSmall),
           const SizedBox(height: 6),
           const Text(
             'Choose the exact date and time for your pickup',
@@ -635,12 +636,12 @@ class _SchedulePickupScreenState extends State<SchedulePickupScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
                 Icon(Icons.summarize_rounded, color: Colors.white70, size: 18),
                 SizedBox(width: 8),
                 Text(
-                  'Pickup Summary',
+                  languageService.t('schedule_summary'),
                   style: TextStyle(
                     color: Colors.white70,
                     fontSize: 13,
@@ -650,13 +651,13 @@ class _SchedulePickupScreenState extends State<SchedulePickupScreen>
               ],
             ),
             const SizedBox(height: 14),
-            _summaryRow(Icons.calendar_today_rounded, 'Date',
+            _summaryRow(Icons.calendar_today_rounded, languageService.t('date'),
                 _formatDate(_selectedDate)),
             const SizedBox(height: 10),
-            _summaryRow(Icons.access_time_rounded, 'Time',
+            _summaryRow(Icons.access_time_rounded, languageService.t('time'),
                 _formatTime(_selectedTime)),
             const SizedBox(height: 10),
-            _summaryRow(Icons.location_on_rounded, 'Address',
+            _summaryRow(Icons.location_on_rounded, languageService.t('location'),
                 _selectedAddress),
           ],
         ),
@@ -725,13 +726,13 @@ class _SchedulePickupScreenState extends State<SchedulePickupScreen>
               ),
               elevation: 0,
             ),
-            child: const Row(
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.arrow_forward_rounded, size: 20),
                 SizedBox(width: 8),
                 Text(
-                  'Continue to Details',
+                  languageService.t('proceed_payment'),
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,

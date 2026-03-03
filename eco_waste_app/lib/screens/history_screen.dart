@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../main.dart' show languageService;
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -75,12 +76,12 @@ class _HistoryScreenState extends State<HistoryScreen>
             child: const Icon(Icons.history_rounded, color: Colors.white, size: 24),
           ),
           const SizedBox(width: 14),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Activity History',
+                  languageService.t('history_title'),
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
@@ -113,7 +114,7 @@ class _HistoryScreenState extends State<HistoryScreen>
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppTheme.primaryGreen.withOpacity(0.2)),
       ),
-      child: const Column(
+      child: Column(
         children: [
           Text(
             '45',
@@ -124,7 +125,7 @@ class _HistoryScreenState extends State<HistoryScreen>
             ),
           ),
           Text(
-            'Total',
+            languageService.t('total'),
             style: TextStyle(
               fontSize: 10,
               color: AppTheme.textSecondary,
@@ -170,10 +171,10 @@ class _HistoryScreenState extends State<HistoryScreen>
         labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
         unselectedLabelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
         dividerColor: Colors.transparent,
-        tabs: const [
-          Tab(text: 'Pickups'),
-          Tab(text: 'Recycling'),
-          Tab(text: 'Transactions'),
+        tabs: [
+          Tab(text: languageService.t('pickups_tab')),
+          Tab(text: languageService.t('recycling_tab')),
+          Tab(text: languageService.t('transactions_tab')),
         ],
       ),
     );

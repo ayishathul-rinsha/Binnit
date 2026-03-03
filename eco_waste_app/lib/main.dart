@@ -2,11 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io' show Platform;
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'theme/app_theme.dart';
+import 'services/language_service.dart';
 import 'screens/login_screen.dart';
+import 'screens/onboarding_screen.dart';
 
-void main() {
+/// Global language service instance accessible across the app
+final LanguageService languageService = LanguageService();
+
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  // Initialize language service (loads saved preferences)
+  await languageService.init();
   
   // Set preferred orientations
   SystemChrome.setPreferredOrientations([
@@ -35,6 +50,14 @@ class EcoWasteApp extends StatelessWidget {
     return Platform.isWindows || Platform.isLinux || Platform.isMacOS;
   }
 
+  /// Determines the initial screen based on onboarding status
+  Widget get _initialScreen {
+    if (languageService.onboardingCompleted) {
+      return const LoginScreen();
+    }
+    return OnboardingScreen(languageService: languageService);
+  }
+
   @override
   Widget build(BuildContext context) {
     // Show device frame on both web and desktop for iPhone preview
@@ -43,7 +66,7 @@ class EcoWasteApp extends StatelessWidget {
     if (showDeviceFrame) {
       // Outer MaterialApp just for the dark background shell
       return MaterialApp(
-        title: 'EcoWaste',
+        title: 'Emptyko',
         debugShowCheckedModeBanner: false,
         theme: ThemeData.dark(),
         home: const DeviceFrameWrapper(),
@@ -52,10 +75,10 @@ class EcoWasteApp extends StatelessWidget {
 
     // On mobile devices, run the app normally
     return MaterialApp(
-      title: 'EcoWaste',
+      title: 'Emptyko',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.themeData,
-      home: const LoginScreen(),
+      home: _initialScreen,
     );
   }
 }
@@ -74,6 +97,13 @@ class DeviceFrameWrapper extends StatelessWidget {
   static const double notchHeight = 34;
   static const double homeIndicatorWidth = 134;
   static const double homeIndicatorHeight = 5;
+
+  Widget get _initialScreen {
+    if (languageService.onboardingCompleted) {
+      return const LoginScreen();
+    }
+    return OnboardingScreen(languageService: languageService);
+  }
   
   @override
   Widget build(BuildContext context) {
@@ -87,7 +117,7 @@ class DeviceFrameWrapper extends StatelessWidget {
               const SizedBox(height: 20),
               // App title
               const Text(
-                '📱 EcoWaste App Preview',
+                '📱 Emptyko App Preview',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 24,
@@ -139,10 +169,10 @@ class DeviceFrameWrapper extends StatelessWidget {
                           width: deviceWidth,
                           height: deviceHeight,
                           child: MaterialApp(
-                            title: 'EcoWaste',
+                            title: 'Emptyko',
                             debugShowCheckedModeBanner: false,
                             theme: AppTheme.themeData,
-                            home: const LoginScreen(),
+                            home: _initialScreen,
                             builder: (context, child) {
                               return MediaQuery(
                                 data: const MediaQueryData(

@@ -1,0 +1,69 @@
+{
+  "project_info": {
+    "project_number": "588767696668",
+    "firebase_url": "https://emptikko-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "emptikko",
+    "storage_bucket": "emptikko.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:588767696668:android:dbbafa92473d5189970cd9",
+        "android_client_info": {
+          "package_name": "com.ecowaste.eco_waste_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "588767696668-kn0hvsbh93upb9sb8a31hrkaoe4iv3a4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCSO3cATW_otjpZXLuztgd1gmZ48IDGlsg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "588767696668-kn0hvsbh93upb9sb8a31hrkaoe4iv3a4.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:588767696668:android:26f2756e36ccd5b3970cd9",
+        "android_client_info": {
+          "package_name": "com.wastecollector.waste_collector"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "588767696668-kn0hvsbh93upb9sb8a31hrkaoe4iv3a4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCSO3cATW_otjpZXLuztgd1gmZ48IDGlsg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "588767696668-kn0hvsbh93upb9sb8a31hrkaoe4iv3a4.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

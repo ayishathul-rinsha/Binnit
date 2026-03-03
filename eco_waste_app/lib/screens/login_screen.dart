@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../theme/app_theme.dart';
+import '../services/auth_service.dart';
+import '../main.dart' show languageService;
 import 'signup_screen.dart';
 import 'home_screen.dart';
 
@@ -101,17 +104,22 @@ class _LoginScreenState extends State<LoginScreen>
     });
   }
 
+  final AuthService _authService = AuthService();
+
   Future<void> _handleGoogleSignIn() async {
     setState(() => _isLoading = true);
 
-    // Simulate Google Sign-In
-    await Future.delayed(const Duration(seconds: 2));
-
+    // TODO: Implement Google Sign-In with google_sign_in package
+    // For now, show a message
     if (mounted) {
       setState(() => _isLoading = false);
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Google Sign-In coming soon! Use phone + email login.'),
+          backgroundColor: AppTheme.primaryGreen,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
       );
     }
   }
@@ -121,15 +129,31 @@ class _LoginScreenState extends State<LoginScreen>
 
     setState(() => _isLoading = true);
 
-    // Simulate login
-    await Future.delayed(const Duration(seconds: 2));
-
-    if (mounted) {
-      setState(() => _isLoading = false);
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+    try {
+      await _authService.loginWithEmail(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
       );
+
+      if (mounted) {
+        setState(() => _isLoading = false);
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AuthService.getErrorMessage(e)),
+            backgroundColor: AppTheme.errorColor,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
     }
   }
 
@@ -148,29 +172,61 @@ class _LoginScreenState extends State<LoginScreen>
 
     setState(() => _isLoading = true);
 
-    // Simulate OTP sending
-    await Future.delayed(const Duration(seconds: 2));
+    final phoneNumber = '$_selectedCountryCode${_phoneController.text.trim()}';
 
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-        _isOtpSent = true;
-        _currentStep = 2;
-      });
-      _startResendTimer();
-      
-      // Focus on first OTP field
-      _otpFocusNodes[0].requestFocus();
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('OTP sent to $_selectedCountryCode ${_phoneController.text}'),
-          backgroundColor: AppTheme.successColor,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
-    }
+    await _authService.sendOtp(
+      phoneNumber: phoneNumber,
+      onCodeSent: (verificationId) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _isOtpSent = true;
+            _currentStep = 2;
+          });
+          _startResendTimer();
+          _otpFocusNodes[0].requestFocus();
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('OTP sent to $phoneNumber'),
+              backgroundColor: AppTheme.successColor,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          );
+        }
+      },
+      onError: (error) {
+        if (mounted) {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(error),
+              backgroundColor: AppTheme.errorColor,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          );
+        }
+      },
+      onAutoVerified: (credential) async {
+        // Auto-verification on Android
+        try {
+          await FirebaseAuth.instance.signInWithCredential(credential);
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+              _isPhoneVerified = true;
+              _currentStep = 3;
+            });
+          }
+        } catch (e) {
+          if (mounted) {
+            setState(() => _isLoading = false);
+          }
+        }
+      },
+    );
   }
 
   Future<void> _verifyOtp() async {
@@ -189,24 +245,37 @@ class _LoginScreenState extends State<LoginScreen>
 
     setState(() => _isVerifying = true);
 
-    // Simulate OTP verification
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      await _authService.verifyOtp(otp);
 
-    if (mounted) {
-      setState(() {
-        _isVerifying = false;
-        _isPhoneVerified = true;
-        _currentStep = 3; // Move to email/password step
-      });
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Phone verified! Now set up your email & password.'),
-          backgroundColor: AppTheme.successColor,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
+      if (mounted) {
+        setState(() {
+          _isVerifying = false;
+          _isPhoneVerified = true;
+          _currentStep = 3;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Phone verified! Now set up your email & password.'),
+            backgroundColor: AppTheme.successColor,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isVerifying = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AuthService.getErrorMessage(e)),
+            backgroundColor: AppTheme.errorColor,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
     }
   }
 
@@ -308,7 +377,7 @@ class _LoginScreenState extends State<LoginScreen>
           Expanded(
             child: _buildStepItem(
               stepNumber: 1,
-              label: 'Phone',
+              label: languageService.t('phone'),
               icon: Icons.phone_android_rounded,
               isActive: _currentStep == 1,
               isCompleted: _currentStep > 1,
@@ -319,7 +388,7 @@ class _LoginScreenState extends State<LoginScreen>
           Expanded(
             child: _buildStepItem(
               stepNumber: 2,
-              label: 'Verify',
+              label: languageService.t('verify'),
               icon: Icons.sms_outlined,
               isActive: _currentStep == 2,
               isCompleted: _currentStep > 2,
@@ -330,7 +399,7 @@ class _LoginScreenState extends State<LoginScreen>
           Expanded(
             child: _buildStepItem(
               stepNumber: 3,
-              label: 'Account',
+              label: languageService.t('account'),
               icon: Icons.email_outlined,
               isActive: _currentStep == 3,
               isCompleted: false,
@@ -454,26 +523,26 @@ class _LoginScreenState extends State<LoginScreen>
   String _getHeaderTitle() {
     switch (_currentStep) {
       case 1:
-        return 'Welcome Back! 👋';
+        return languageService.t('welcome_back');
       case 2:
-        return 'Verify OTP 🔐';
+        return languageService.t('verify_otp');
       case 3:
-        return 'Almost Done! 🎉';
+        return languageService.t('almost_done');
       default:
-        return 'Welcome Back! 👋';
+        return languageService.t('welcome_back');
     }
   }
 
   String _getHeaderSubtitle() {
     switch (_currentStep) {
       case 1:
-        return 'Enter your phone number to get started';
+        return languageService.t('enter_phone');
       case 2:
-        return 'Enter the 6-digit code sent to your phone';
+        return languageService.t('enter_otp');
       case 3:
-        return 'Set up your email & password to complete login';
+        return languageService.t('setup_email');
       default:
-        return 'Enter your phone number to get started';
+        return languageService.t('enter_phone');
     }
   }
 
@@ -510,7 +579,7 @@ class _LoginScreenState extends State<LoginScreen>
             ),
             const SizedBox(width: 12),
             Text(
-              'Continue with Google',
+              languageService.t('continue_google'),
               style: AppTheme.bodyLarge.copyWith(
                 fontWeight: FontWeight.w500,
               ),
@@ -540,7 +609,7 @@ class _LoginScreenState extends State<LoginScreen>
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Text(
-            'or continue with phone',
+            languageService.t('or_continue_phone'),
             style: AppTheme.bodySmall.copyWith(
               color: AppTheme.textLight,
             ),
@@ -626,7 +695,7 @@ class _LoginScreenState extends State<LoginScreen>
                     LengthLimitingTextInputFormatter(10),
                   ],
                   decoration: InputDecoration(
-                    hintText: 'Enter phone number',
+                    hintText: languageService.t('enter_phone_number'),
                     hintStyle: AppTheme.bodyMedium.copyWith(
                       color: AppTheme.textLight,
                     ),
@@ -664,8 +733,8 @@ class _LoginScreenState extends State<LoginScreen>
                     children: [
                       const Icon(Icons.sms_outlined, size: 20),
                       const SizedBox(width: 8),
-                      const Text(
-                        'Send OTP',
+                      Text(
+                        languageService.t('send_otp'),
                         style: AppTheme.buttonText,
                       ),
                     ],
@@ -699,7 +768,7 @@ class _LoginScreenState extends State<LoginScreen>
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Your phone number is secure and will only be used for verification.',
+                   languageService.t('phone_secure_note'),
                   style: AppTheme.bodySmall.copyWith(
                     color: AppTheme.textSecondary,
                     fontSize: 12,
@@ -738,13 +807,13 @@ class _LoginScreenState extends State<LoginScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Enter OTP',
-                    style: AppTheme.headingSmall,
+                   Text(
+                     languageService.t('enter_otp_label'),
+                     style: AppTheme.headingSmall,
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Sent to $_selectedCountryCode ${_phoneController.text}',
+                     '${languageService.t('sent_to')} $_selectedCountryCode ${_phoneController.text}',
                     style: AppTheme.bodySmall.copyWith(
                       color: AppTheme.textSecondary,
                     ),
@@ -846,10 +915,10 @@ class _LoginScreenState extends State<LoginScreen>
                     children: [
                       const Icon(Icons.verified_outlined, size: 20),
                       const SizedBox(width: 8),
-                      const Text(
-                        'Verify OTP',
-                        style: AppTheme.buttonText,
-                      ),
+                       Text(
+                         languageService.t('verify_otp_btn'),
+                         style: AppTheme.buttonText,
+                       ),
                     ],
                   ),
           ),
@@ -862,7 +931,7 @@ class _LoginScreenState extends State<LoginScreen>
           child: Column(
             children: [
               Text(
-                'Didn\'t receive the code?',
+                languageService.t('didnt_receive'),
                 style: AppTheme.bodySmall.copyWith(
                   color: AppTheme.textSecondary,
                 ),
@@ -889,7 +958,7 @@ class _LoginScreenState extends State<LoginScreen>
                   : GestureDetector(
                       onTap: _sendOtp,
                       child: Text(
-                        'Resend OTP',
+                         languageService.t('resend_otp'),
                         style: AppTheme.bodyMedium.copyWith(
                           color: AppTheme.primaryGreen,
                           fontWeight: FontWeight.w600,
@@ -937,7 +1006,7 @@ class _LoginScreenState extends State<LoginScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Phone Verified',
+                       languageService.t('phone_verified'),
                       style: AppTheme.bodyMedium.copyWith(
                         fontWeight: FontWeight.w600,
                         color: AppTheme.successColor,
@@ -971,15 +1040,15 @@ class _LoginScreenState extends State<LoginScreen>
                 keyboardType: TextInputType.emailAddress,
                 style: AppTheme.bodyLarge,
                 decoration: AppTheme.inputDecoration(
-                  hintText: 'Email Address',
+                   hintText: languageService.t('email_address'),
                   prefixIcon: Icons.email_outlined,
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter your email';
+                     return languageService.t('enter_email');
                   }
                   if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                    return 'Please enter a valid email';
+                     return languageService.t('valid_email');
                   }
                   return null;
                 },
@@ -990,7 +1059,7 @@ class _LoginScreenState extends State<LoginScreen>
                 obscureText: _obscurePassword,
                 style: AppTheme.bodyLarge,
                 decoration: AppTheme.inputDecoration(
-                  hintText: 'Password',
+                   hintText: languageService.t('password'),
                   prefixIcon: Icons.lock_outline_rounded,
                   suffixIcon: IconButton(
                     icon: Icon(
@@ -1007,7 +1076,7 @@ class _LoginScreenState extends State<LoginScreen>
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter your password';
+                     return languageService.t('enter_password');
                   }
                   return null;
                 },
@@ -1045,7 +1114,7 @@ class _LoginScreenState extends State<LoginScreen>
             ),
             const SizedBox(width: 8),
             Text(
-              'Remember me',
+               languageService.t('remember_me'),
               style: AppTheme.bodySmall.copyWith(
                 color: AppTheme.textSecondary,
                 fontSize: 13,
@@ -1058,7 +1127,7 @@ class _LoginScreenState extends State<LoginScreen>
             // Handle forgot password
           },
           child: Text(
-            'Forgot Password?',
+             languageService.t('forgot_password'),
             style: AppTheme.bodySmall.copyWith(
               color: AppTheme.primaryGreen,
               fontWeight: FontWeight.w600,
@@ -1091,10 +1160,10 @@ class _LoginScreenState extends State<LoginScreen>
                 children: [
                   const Icon(Icons.login_rounded, size: 20),
                   const SizedBox(width: 8),
-                  const Text(
-                    'Complete Sign In',
-                    style: AppTheme.buttonText,
-                  ),
+                   Text(
+                     languageService.t('complete_sign_in'),
+                     style: AppTheme.buttonText,
+                   ),
                 ],
               ),
       ),
@@ -1107,9 +1176,9 @@ class _LoginScreenState extends State<LoginScreen>
         text: TextSpan(
           style: AppTheme.bodyMedium,
           children: [
-            const TextSpan(text: 'Don\'t have an account? '),
+             TextSpan(text: languageService.t('dont_have_account')),
             TextSpan(
-              text: 'Sign Up',
+               text: languageService.t('sign_up'),
               style: const TextStyle(
                 color: AppTheme.primaryGreen,
                 fontWeight: FontWeight.w600,

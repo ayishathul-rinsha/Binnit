@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../main.dart' show languageService;
 import 'pickup_tracking_screen.dart';
 
 class PaymentScreen extends StatefulWidget {
@@ -147,9 +148,9 @@ class _PaymentScreenState extends State<PaymentScreen>
             ),
           ),
           const SizedBox(width: 8),
-          const Expanded(
+          Expanded(
             child: Text(
-              'Payment',
+              languageService.t('payment'),
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -291,8 +292,8 @@ class _PaymentScreenState extends State<PaymentScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Order Summary',
+            Text(
+              languageService.t('order_summary'),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -314,8 +315,8 @@ class _PaymentScreenState extends State<PaymentScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Total',
+                Text(
+                  languageService.t('total'),
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -376,7 +377,7 @@ class _PaymentScreenState extends State<PaymentScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Payment Method', style: AppTheme.headingSmall),
+          Text(languageService.t('payment_method'), style: AppTheme.headingSmall),
           const SizedBox(height: 14),
           ...List.generate(_paymentMethods.length, (index) {
             final method = _paymentMethods[index];
@@ -531,8 +532,8 @@ class _PaymentScreenState extends State<PaymentScreen>
                 color: AppTheme.primaryGreen.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Text(
-                'Apply',
+              child: Text(
+                languageService.t('apply'),
                 style: TextStyle(
                   color: AppTheme.primaryGreen,
                   fontSize: 13,
@@ -650,8 +651,8 @@ class _PaymentScreenState extends State<PaymentScreen>
                   ),
                 ),
                 const SizedBox(height: 28),
-                const Text(
-                  'Payment Successful! 🎉',
+                Text(
+                  languageService.t('payment_success'),
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -711,13 +712,13 @@ class _PaymentScreenState extends State<PaymentScreen>
                         borderRadius: BorderRadius.circular(16),
                       ),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(Icons.local_shipping_rounded, size: 20),
                         SizedBox(width: 8),
                         Text(
-                          'Track Pickup',
+                          languageService.t('track_your_pickup'),
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -732,8 +733,8 @@ class _PaymentScreenState extends State<PaymentScreen>
                   onPressed: () {
                     Navigator.of(context).popUntil((route) => route.isFirst);
                   },
-                  child: const Text(
-                    'Back to Home',
+                  child: Text(
+                    languageService.t('back_to_home'),
                     style: TextStyle(
                       color: AppTheme.primaryGreen,
                       fontWeight: FontWeight.w600,

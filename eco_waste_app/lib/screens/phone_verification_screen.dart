@@ -1,15 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import '../theme/app_theme.dart';
+import '../main.dart' show languageService;
+import '../services/auth_service.dart';
 import 'home_screen.dart';
 
 class PhoneVerificationScreen extends StatefulWidget {
   final bool isNewUser;
+  final String? phoneNumber;
+  final String? countryCode;
   
   const PhoneVerificationScreen({
     super.key,
     this.isNewUser = false,
+    this.phoneNumber,
+    this.countryCode,
   });
 
   @override
@@ -65,6 +72,17 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen>
     );
 
     _animationController.forward();
+
+    // If phone number is passed from signup, pre-fill and auto-send OTP
+    if (widget.phoneNumber != null) {
+      _phoneController.text = widget.phoneNumber!;
+      if (widget.countryCode != null) {
+        _selectedCountryCode = widget.countryCode!;
+      }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _sendOtp();
+      });
+    }
   }
 
   @override
@@ -81,8 +99,10 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen>
     super.dispose();
   }
 
+  final AuthService _authService = AuthService();
+
   void _startResendTimer() {
-    _resendSeconds = 30;
+    _resendSeconds = 60; // Increased to 60 for real SMS
     _resendTimer?.cancel();
     _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_resendSeconds > 0) {
@@ -108,28 +128,54 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen>
 
     setState(() => _isLoading = true);
 
-    // Simulate OTP sending
-    await Future.delayed(const Duration(seconds: 2));
+    final phoneNumber = '$_selectedCountryCode${_phoneController.text.trim()}';
 
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-        _isOtpSent = true;
-      });
-      _startResendTimer();
-      
-      // Focus on first OTP field
-      _otpFocusNodes[0].requestFocus();
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('OTP sent to $_selectedCountryCode ${_phoneController.text}'),
-          backgroundColor: AppTheme.successColor,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
-    }
+    await _authService.sendOtp(
+      phoneNumber: phoneNumber,
+      onCodeSent: (verificationId) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _isOtpSent = true;
+          });
+          _startResendTimer();
+          _otpFocusNodes[0].requestFocus();
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('OTP sent to $phoneNumber'),
+              backgroundColor: AppTheme.successColor,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          );
+        }
+      },
+      onError: (error) {
+        if (mounted) {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(error),
+              backgroundColor: AppTheme.errorColor,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          );
+        }
+      },
+      onAutoVerified: (credential) async {
+        try {
+          await FirebaseAuth.instance.signInWithCredential(credential);
+          if (mounted) {
+            setState(() => _isLoading = false);
+            _showSuccessDialog();
+          }
+        } catch (e) {
+          if (mounted) setState(() => _isLoading = false);
+        }
+      },
+    );
   }
 
   Future<void> _verifyOtp() async {
@@ -148,14 +194,33 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen>
 
     setState(() => _isVerifying = true);
 
-    // Simulate OTP verification
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      await _authService.verifyOtp(otp);
 
-    if (mounted) {
-      setState(() => _isVerifying = false);
-      
-      // Show success dialog
-      _showSuccessDialog();
+      if (mounted) {
+        setState(() => _isVerifying = false);
+        
+        // Link phone to user document if they are logged in
+        if (_authService.isLoggedIn) {
+          await _authService.updateUserData({
+            'phone': '$_selectedCountryCode${_phoneController.text.trim()}',
+          });
+        }
+
+        _showSuccessDialog();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isVerifying = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AuthService.getErrorMessage(e)),
+            backgroundColor: AppTheme.errorColor,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
     }
   }
 
@@ -339,14 +404,14 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen>
         ),
         const SizedBox(height: 24),
         Text(
-          _isOtpSent ? 'Verify OTP' : 'Phone Verification',
+          _isOtpSent ? languageService.t('verify_otp') : languageService.t('verify_phone'),
           style: AppTheme.headingLarge,
         ),
         const SizedBox(height: 8),
         Text(
           _isOtpSent
-              ? 'Enter the 6-digit code sent to\n$_selectedCountryCode ${_phoneController.text}'
-              : 'We\'ll send you a verification code to confirm your identity',
+              ? '${languageService.t('enter_otp')}\n$_selectedCountryCode ${_phoneController.text}'
+              : languageService.t('verify_phone_desc'),
           style: AppTheme.bodyMedium.copyWith(
             color: AppTheme.textSecondary,
             fontSize: 15,
@@ -419,7 +484,7 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen>
                     LengthLimitingTextInputFormatter(10),
                   ],
                   decoration: InputDecoration(
-                    hintText: 'Enter phone number',
+                    hintText: languageService.t('enter_phone_number'),
                     hintStyle: AppTheme.bodyMedium.copyWith(
                       color: AppTheme.textLight,
                     ),
@@ -452,8 +517,8 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen>
                       strokeWidth: 2.5,
                     ),
                   )
-                : const Text(
-                    'Send OTP',
+                : Text(
+                    languageService.t('send_otp'),
                     style: AppTheme.buttonText,
                   ),
           ),
@@ -574,8 +639,8 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen>
                       strokeWidth: 2.5,
                     ),
                   )
-                : const Text(
-                    'Verify & Continue',
+                : Text(
+                    languageService.t('verify_otp_btn'),
                     style: AppTheme.buttonText,
                   ),
           ),
@@ -588,7 +653,7 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen>
           child: Column(
             children: [
               Text(
-                'Didn\'t receive the code?',
+                languageService.t('didnt_receive'),
                 style: AppTheme.bodyMedium.copyWith(
                   color: AppTheme.textSecondary,
                 ),
@@ -596,7 +661,7 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen>
               const SizedBox(height: 8),
               _resendSeconds > 0
                   ? Text(
-                      'Resend OTP in $_resendSeconds seconds',
+                      '${languageService.t('resend_in')} $_resendSeconds seconds',
                       style: AppTheme.bodyMedium.copyWith(
                         color: AppTheme.textLight,
                       ),
@@ -604,7 +669,7 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen>
                   : GestureDetector(
                       onTap: _sendOtp,
                       child: Text(
-                        'Resend OTP',
+                        languageService.t('resend_otp'),
                         style: AppTheme.bodyMedium.copyWith(
                           color: AppTheme.primaryGreen,
                           fontWeight: FontWeight.w600,

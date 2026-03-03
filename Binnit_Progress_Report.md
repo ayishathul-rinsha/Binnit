@@ -1,7 +1,7 @@
 BINNIT — Smart Waste Management App
 Progress Report
 Date: 14 February 2026
-Prepared by: Ayishathul Rinsha
+Prepared by: Devika S Kumar
 GitHub: https://github.com/ayishathul-rinsha/Binnit
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

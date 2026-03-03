@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../main.dart' show languageService;
 
 class PickupTrackingScreen extends StatefulWidget {
   const PickupTrackingScreen({super.key});
@@ -130,9 +131,9 @@ class _PickupTrackingScreenState extends State<PickupTrackingScreen>
             ),
           ),
           const SizedBox(width: 8),
-          const Expanded(
+          Expanded(
             child: Text(
-              'Live Tracking',
+              languageService.t('track_pickup'),
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -147,13 +148,13 @@ class _PickupTrackingScreenState extends State<PickupTrackingScreen>
               color: const Color(0xFF4CAF50).withOpacity(0.1),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(Icons.circle, size: 8, color: Color(0xFF4CAF50)),
                 SizedBox(width: 6),
                 Text(
-                  'LIVE',
+                  languageService.t('live'),
                   style: TextStyle(
                     fontSize: 12,
                     color: Color(0xFF4CAF50),
@@ -424,8 +425,8 @@ class _PickupTrackingScreenState extends State<PickupTrackingScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Arriving in',
+                  Text(
+                    languageService.t('arriving_in'),
                     style: TextStyle(
                       color: Colors.white70,
                       fontSize: 12,
