@@ -1,6 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
 
+<!-- Firebase App (the core SDK) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<!-- Firebase Realtime Database -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyDkm6ZuTo5w7185ql17uim_wOs1nc0UMV0",
+        authDomain: "emptikko.firebaseapp.com",
+        databaseURL: "https://emptikko-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "emptikko",
+        storageBucket: "emptikko.firebasestorage.app",
+        messagingSenderId: "588767696668",
+        appId: "1:588767696668:web:9cb3073ae5094d0f970cd9"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    console.log("🔥 Firebase Connected Successfully!");
+</script>
+
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
