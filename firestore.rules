@@ -123,5 +123,9 @@ service cloud.firestore {
         allow write: if false; // Managed by backend only
       }
     }
+    // OTPs (managed by backend only — no client access)
+    match /otps/{otpId} {
+      allow read, write: if false;
+    }
   }
 }
