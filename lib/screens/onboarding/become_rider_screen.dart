@@ -210,15 +210,26 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
       if (mounted) {
         setState(() => _isLoading = false);
         if (result['success'] == true) {
-          final otp = result['otp'] as String;
-          setState(() => _otpSent = true);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Your OTP is: $otp'),
-              backgroundColor: Colors.green,
-              duration: const Duration(seconds: 10),
-            ),
-          );
+          if (result['autoVerified'] == true) {
+            // Phone was auto-verified (some Android devices)
+            setState(() => _otpSent = true);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Phone auto-verified!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+            _nextStep();
+          } else {
+            // OTP sent via SMS
+            setState(() => _otpSent = true);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('OTP sent! Check your SMS.'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

@@ -1,99 +1,156 @@
-import 'dart:math';
+import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 
-/// OTP Service — Fake OTP for development + Firebase Anonymous Auth
+/// OTP Service — Real Firebase Phone Authentication
 ///
-/// Generates OTP locally and verifies it in-app.
-/// After verification, signs in anonymously to Firebase for a real UID.
+/// Sends real SMS OTP via Firebase and signs user in on verification.
 class OtpService {
   static final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // In-memory store: phone -> { otp, expiresAt }
-  static final Map<String, _OtpEntry> _otpStore = {};
+  // Store verification ID for later use
+  static String? _verificationId;
+  static int? _resendToken;
 
-  /// Send (generate) a fake OTP for the given phone number.
+  /// Send OTP to the given phone number via Firebase.
   ///
-  /// Returns `{ success: true, otp: "123456" }` so the UI can display it.
+  /// [phone] should be the 10-digit number (without country code).
   static Future<Map<String, dynamic>> sendOtp(String phone) async {
-    // Simulate a tiny network delay
-    await Future.delayed(const Duration(milliseconds: 500));
+    final completer = Completer<Map<String, dynamic>>();
 
-    final otp = _generateOtp();
-    _otpStore[phone] = _OtpEntry(
-      otp: otp,
-      expiresAt: DateTime.now().add(const Duration(minutes: 5)),
-    );
+    try {
+      await _auth.verifyPhoneNumber(
+        phoneNumber: '+91$phone',
+        timeout: const Duration(seconds: 120),
+        forceResendingToken: _resendToken,
 
-    return {
-      'success': true,
-      'otp': otp,
-      'message': 'OTP sent successfully (dev mode)',
-    };
+        // Auto-verification (some Android devices)
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          try {
+            await _auth.signInWithCredential(credential);
+            if (!completer.isCompleted) {
+              completer.complete({
+                'success': true,
+                'autoVerified': true,
+                'message': 'Phone auto-verified!',
+              });
+            }
+          } catch (e) {
+            if (!completer.isCompleted) {
+              completer.complete({
+                'success': false,
+                'message': 'Auto-verification failed: ${e.toString()}',
+              });
+            }
+          }
+        },
+
+        // Verification failed
+        verificationFailed: (FirebaseAuthException e) {
+          if (!completer.isCompleted) {
+            completer.complete({
+              'success': false,
+              'message': _getPhoneAuthError(e.code),
+            });
+          }
+        },
+
+        // Code sent to phone
+        codeSent: (String verificationId, int? resendToken) {
+          _verificationId = verificationId;
+          _resendToken = resendToken;
+          if (!completer.isCompleted) {
+            completer.complete({
+              'success': true,
+              'autoVerified': false,
+              'message': 'OTP sent to your phone!',
+            });
+          }
+        },
+
+        // Timeout
+        codeAutoRetrievalTimeout: (String verificationId) {
+          _verificationId = verificationId;
+        },
+      );
+    } catch (e) {
+      if (!completer.isCompleted) {
+        completer.complete({
+          'success': false,
+          'message': 'Error: ${e.toString()}',
+        });
+      }
+    }
+
+    return completer.future;
   }
 
-  /// Verify the OTP for the given phone number.
-  ///
-  /// On success, signs in anonymously to Firebase to get a real UID.
-  /// Returns `{ success: true }` or `{ success: false, message: "..." }`.
+  /// Verify the OTP entered by the user.
   static Future<Map<String, dynamic>> verifyOtp(
     String phone,
     String otp,
   ) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-
-    final stored = _otpStore[phone];
-
-    if (stored == null) {
-      return {
-        'success': false,
-        'message': 'OTP not found. Please request a new one.',
-      };
-    }
-
-    if (DateTime.now().isAfter(stored.expiresAt)) {
-      _otpStore.remove(phone);
-      return {
-        'success': false,
-        'message': 'OTP expired. Please request a new one.',
-      };
-    }
-
-    if (stored.otp != otp) {
-      return {
-        'success': false,
-        'message': 'Invalid OTP. Please try again.',
-      };
-    }
-
-    // OTP verified — clean up
-    _otpStore.remove(phone);
-
-    // Sign in anonymously to Firebase for a real UID
     try {
-      await _auth.signInAnonymously();
+      if (_verificationId == null) {
+        return {
+          'success': false,
+          'message': 'No verification in progress. Please request a new OTP.',
+        };
+      }
+
+      final credential = PhoneAuthProvider.credential(
+        verificationId: _verificationId!,
+        smsCode: otp,
+      );
+
+      final userCredential = await _auth.signInWithCredential(credential);
+
+      if (userCredential.user != null) {
+        _verificationId = null;
+        _resendToken = null;
+        return {
+          'success': true,
+          'message': 'Phone verified successfully!',
+        };
+      } else {
+        return {
+          'success': false,
+          'message': 'Verification failed. Please try again.',
+        };
+      }
+    } on FirebaseAuthException catch (e) {
       return {
-        'success': true,
-        'message': 'Phone verified successfully!',
+        'success': false,
+        'message': _getPhoneAuthError(e.code),
       };
     } catch (e) {
       return {
-        'success': true,
-        'message': 'Phone verified (offline mode)',
+        'success': false,
+        'message': 'Error: ${e.toString()}',
       };
     }
   }
 
-  /// Generate a random 6-digit OTP
-  static String _generateOtp() {
-    final random = Random();
-    return (100000 + random.nextInt(900000)).toString();
+  /// Human-readable Firebase error messages
+  static String _getPhoneAuthError(String code) {
+    switch (code) {
+      case 'invalid-phone-number':
+        return 'Invalid phone number. Please check and try again.';
+      case 'too-many-requests':
+        return 'Too many attempts. Please try again later.';
+      case 'quota-exceeded':
+        return 'SMS quota exceeded. Please try again tomorrow.';
+      case 'invalid-verification-code':
+        return 'Invalid OTP. Please check and try again.';
+      case 'session-expired':
+        return 'OTP expired. Please request a new one.';
+      case 'network-request-failed':
+        return 'Network error. Please check your connection.';
+      case 'invalid-app-credential':
+        return 'App verification failed. Please try again.';
+      case 'missing-client-identifier':
+        return 'Device verification failed. Please try again.';
+      default:
+        return 'Verification error: $code';
+    }
   }
-}
-
-/// Internal class to hold OTP data
-class _OtpEntry {
-  final String otp;
-  final DateTime expiresAt;
-
-  _OtpEntry({required this.otp, required this.expiresAt});
 }
