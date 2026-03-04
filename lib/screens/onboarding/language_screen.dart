@@ -34,7 +34,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
     await localeProvider.setLocale(_selectedLanguage);
 
     if (mounted) {
-      Navigator.pushReplacementNamed(context, Routes.becomeRider);
+      Navigator.pushReplacementNamed(context, Routes.userType);
     }
   }
 

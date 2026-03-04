@@ -203,6 +203,12 @@ const Map<String, String> _englishStrings = {
   'reviewTime':
       "We'll notify you once your application is approved. This usually takes 1-2 business days.",
   'goToLogin': 'Go to Login',
+  'userTypeTitle': 'Welcome!',
+  'userTypeSubtitle': 'Are you new here or already have an account?',
+  'newUser': 'New User',
+  'newUserDesc': 'Register as a waste collector and start earning',
+  'existingUser': 'Existing User',
+  'existingUserDesc': 'Sign in to your existing account',
 };
 
 // Hindi
@@ -281,6 +287,12 @@ const Map<String, String> _hindiStrings = {
   'reviewTime':
       'आवेदन स्वीकृत होने पर हम आपको सूचित करेंगे। इसमें आमतौर पर 1-2 कार्य दिवस लगते हैं।',
   'goToLogin': 'लॉगिन पर जाएं',
+  'userTypeTitle': 'स्वागत है!',
+  'userTypeSubtitle': 'क्या आप नए हैं या पहले से खाता है?',
+  'newUser': 'नया उपयोगकर्ता',
+  'newUserDesc': 'कचरा संग्रहकर्ता के रूप में पंजीकरण करें और कमाई शुरू करें',
+  'existingUser': 'मौजूदा उपयोगकर्ता',
+  'existingUserDesc': 'अपने मौजूदा खाते में साइन इन करें',
 };
 
 // Malayalam
@@ -359,6 +371,12 @@ const Map<String, String> _malayalamStrings = {
   'reviewTime':
       'അപേക്ഷ അംഗീകരിക്കുമ്പോൾ ഞങ്ങൾ നിങ്ങളെ അറിയിക്കും। ഇത് സാധാരണയായി 1-2 പ്രവൃത്തി ദിവസം എടുക്കും।',
   'goToLogin': 'ലോഗിനിലേക്ക് പോകുക',
+  'userTypeTitle': 'സ്വാഗതം!',
+  'userTypeSubtitle': 'നിങ്ങൾ പുതിയതാണോ അതോ ഇതിനകം അക്കൗണ്ട് ഉണ്ടോ?',
+  'newUser': 'പുതിയ ഉപയോക്താവ്',
+  'newUserDesc': 'മാലിന്യ ശേഖരണക്കാരനായി രജിസ്റ്റർ ചെയ്ത് സമ്പാദിക്കാൻ തുടങ്ങൂ',
+  'existingUser': 'നിലവിലുള്ള ഉപയോക്താവ്',
+  'existingUserDesc': 'നിലവിലുള്ള അക്കൗണ്ടിൽ സൈൻ ഇൻ ചെയ്യുക',
 };
 
 // Kannada
@@ -437,6 +455,12 @@ const Map<String, String> _kannadaStrings = {
   'reviewTime':
       'ಅರ್ಜಿ ಅನುಮೋದಿಸಿದಾಗ ನಾವು ನಿಮಗೆ ತಿಳಿಸುತ್ತೇವೆ। ಇದು ಸಾಮಾನ್ಯವಾಗಿ 1-2 ಕೆಲಸದ ದಿನಗಳನ್ನು ತೆಗೆದುಕೊಳ್ಳುತ್ತದೆ।',
   'goToLogin': 'ಲಾಗಿನ್‌ಗೆ ಹೋಗಿ',
+  'userTypeTitle': 'ಸ್ವಾಗತ!',
+  'userTypeSubtitle': 'ನೀವು ಹೊಸಬರೇ ಅಥವಾ ಈಗಾಗಲೇ ಖಾತೆ ಇದೆಯೇ?',
+  'newUser': 'ಹೊಸ ಬಳಕೆದಾರ',
+  'newUserDesc': 'ತ್ಯಾಜ್ಯ ಸಂಗ್ರಾಹಕರಾಗಿ ನೋಂದಾಯಿಸಿ ಮತ್ತು ಗಳಿಸಲು ಪ್ರಾರಂಭಿಸಿ',
+  'existingUser': 'ಅಸ್ತಿತ್ವದಲ್ಲಿರುವ ಬಳಕೆದಾರ',
+  'existingUserDesc': 'ನಿಮ್ಮ ಅಸ್ತಿತ್ವದಲ್ಲಿರುವ ಖಾತೆಗೆ ಸೈನ್ ಇನ್ ಮಾಡಿ',
 };
 
 // Tamil
@@ -515,6 +539,12 @@ const Map<String, String> _tamilStrings = {
   'reviewTime':
       'விண்ணப்பம் அங்கீகரிக்கப்படும்போது நாங்கள் உங்களுக்குத் தெரிவிப்போம்। இது பொதுவாக 1-2 வணிக நாட்கள் ஆகும்।',
   'goToLogin': 'உள்நுழைவுக்குச் செல்லவும்',
+  'userTypeTitle': 'வரவேற்கிறோம்!',
+  'userTypeSubtitle': 'நீங்கள் புதியவரா அல்லது ஏற்கனவே கணக்கு உள்ளதா?',
+  'newUser': 'புதிய பயனர்',
+  'newUserDesc': 'கழிவு சேகரிப்பாளராக பதிவு செய்து சம்பாதிக்கத் தொடங்குங்கள்',
+  'existingUser': 'ஏற்கனவே உள்ள பயனர்',
+  'existingUserDesc': 'உங்கள் ஏற்கனவே உள்ள கணக்கில் உள்நுழையுங்கள்',
 };
 
 // Bengali
@@ -593,6 +623,12 @@ const Map<String, String> _bengaliStrings = {
   'reviewTime':
       'আবেদন অনুমোদিত হলে আমরা আপনাকে জানাব। এটি সাধারণত 1-2 কার্যদিবস সময় নেয়।',
   'goToLogin': 'লগইনে যান',
+  'userTypeTitle': 'স্বাগতম!',
+  'userTypeSubtitle': 'আপনি কি নতুন নাকি ইতিমধ্যে অ্যাকাউন্ট আছে?',
+  'newUser': 'নতুন ব্যবহারকারী',
+  'newUserDesc': 'বর্জ্য সংগ্রাহক হিসেবে নিবন্ধন করুন এবং আয় শুরু করুন',
+  'existingUser': 'বিদ্যমান ব্যবহারকারী',
+  'existingUserDesc': 'আপনার বিদ্যমান অ্যাকাউন্টে সাইন ইন করুন',
 };
 
 // Telugu
@@ -671,4 +707,10 @@ const Map<String, String> _teluguStrings = {
   'reviewTime':
       'దరఖాస్తు ఆమోదించినప్పుడు మేము మీకు తెలియజేస్తాము। ఇది సాధారణంగా 1-2 వ్యాపార దినాలు పడుతుంది।',
   'goToLogin': 'లాగిన్‌కి వెళ్ళండి',
+  'userTypeTitle': 'స్వాగతం!',
+  'userTypeSubtitle': 'మీరు కొత్తగా వచ్చారా లేదా ఇప్పటికే ఖాతా ఉందా?',
+  'newUser': 'కొత్త వినియోగదారు',
+  'newUserDesc': 'వ్యర్థ సేకరణదారుగా నమోదు చేసుకొని సంపాదించడం ప్రారంభించండి',
+  'existingUser': 'ఇప్పటికే ఉన్న వినియోగదారు',
+  'existingUserDesc': 'మీ ఇప్పటికే ఉన్న ఖాతాలో సైన్ ఇన్ చేయండి',
 };

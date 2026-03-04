@@ -9,6 +9,7 @@ import '../screens/auth/otp_verification_screen.dart';
 // Onboarding Screens
 import '../screens/onboarding/permissions_screen.dart';
 import '../screens/onboarding/language_screen.dart';
+import '../screens/onboarding/user_type_screen.dart';
 import '../screens/onboarding/become_rider_screen.dart';
 import '../screens/onboarding/registration_complete_screen.dart';
 
@@ -34,6 +35,7 @@ class Routes {
   // Onboarding
   static const String permissions = '/permissions';
   static const String languageSelection = '/language-selection';
+  static const String userType = '/user-type';
   static const String becomeRider = '/become-rider';
   static const String registrationComplete = '/registration-complete';
 
@@ -71,6 +73,8 @@ class AppRouter {
         return _buildRoute(const PermissionsScreen());
       case Routes.languageSelection:
         return _buildRoute(const LanguageScreen());
+      case Routes.userType:
+        return _buildRoute(const UserTypeScreen());
       case Routes.becomeRider:
         return _buildRoute(const BecomeRiderScreen());
       case Routes.registrationComplete:

@@ -30,7 +30,6 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
   final _phoneFocus = FocusNode();
   final _otpFocus = FocusNode();
   bool _otpSent = false;
-  bool _phoneVerified = false;
 
   // Step 2: Personal details
   final _nameController = TextEditingController();
@@ -211,15 +210,27 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
       if (mounted) {
         setState(() => _isLoading = false);
         if (result['success'] == true) {
-          final otp = result['otp'] as String;
-          setState(() => _otpSent = true);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Your OTP is: $otp (dev mode)'),
-              backgroundColor: Colors.green,
-              duration: const Duration(seconds: 10),
-            ),
-          );
+          // Check if auto-verified (some devices do instant verification)
+          if (result['autoVerified'] == true) {
+            setState(() {
+              _otpSent = true;
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Phone auto-verified! Moving to next step...'),
+                backgroundColor: Colors.green,
+              ),
+            );
+            _nextStep();
+          } else {
+            setState(() => _otpSent = true);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('OTP sent! Check your SMS.'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -266,7 +277,6 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
         if (mounted) {
           setState(() {
             _isLoading = false;
-            _phoneVerified = true;
           });
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -306,18 +316,11 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Verify phone was verified via fake OTP
-      if (!_phoneVerified) {
+      // Phone should already be verified and user signed in via Firebase Phone Auth
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
         throw Exception(
             'Phone not verified. Please go back and verify your phone number.');
-      }
-
-      // Sign in anonymously to get a Firebase UID
-      final authResult = await FirebaseAuth.instance.signInAnonymously();
-      final user = authResult.user;
-
-      if (user == null) {
-        throw Exception('Failed to create account');
       }
 
       // Update display name
