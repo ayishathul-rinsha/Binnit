@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/collector_provider.dart';
 import '../../routes/app_routes.dart';
 import '../../utils/constants.dart';
 import '../../utils/helpers.dart';
 import '../../widgets/widgets.dart';
 import '../../l10n/app_localizations.dart';
 
-/// Login screen with subtle animations
+/// Login screen — phone number entry for OTP auth
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -18,40 +17,33 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  bool _obscurePassword = true;
+  final _phoneController = TextEditingController();
 
   @override
   void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
-  Future<void> _handleLogin() async {
+  Future<void> _handleSendOtp() async {
     if (!_formKey.currentState!.validate()) return;
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final collectorProvider = Provider.of<CollectorProvider>(
-      context,
-      listen: false,
-    );
+    final phone = _phoneController.text.trim();
 
-    final success = await authProvider.login(
-      email: _emailController.text.trim(),
-      password: _passwordController.text,
-    );
+    final result = await authProvider.sendOtp(phone: phone);
 
-    if (success && mounted) {
-      if (authProvider.collector != null) {
-        collectorProvider.setCollector(authProvider.collector!);
-      }
-      Navigator.pushReplacementNamed(context, Routes.main);
+    if (result['success'] == true && mounted) {
+      // Navigate to OTP verification screen, passing phone number
+      Navigator.pushNamed(
+        context,
+        Routes.otpVerification,
+        arguments: {'phone': phone},
+      );
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(authProvider.error ?? 'Unable to sign in'),
+          content: Text(authProvider.error ?? 'Failed to send OTP'),
           backgroundColor: AppColors.error,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -90,7 +82,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                       const SizedBox(height: 48),
 
-                      // Animated Welcome section
+                      // Welcome section
                       FadeSlideAnimation(
                         delay: 200,
                         child: Container(
@@ -112,7 +104,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                l10n.signInContinue,
+                                l10n.enterPhone,
                                 style: TextStyle(
                                   fontSize: 14,
                                   color: AppColors.textSecondary,
@@ -125,86 +117,31 @@ class _LoginScreenState extends State<LoginScreen> {
 
                       const SizedBox(height: 32),
 
-                      // Animated Email field
+                      // Phone number field
                       FadeSlideAnimation(
                         delay: 300,
                         child: _buildTextField(
-                          controller: _emailController,
-                          label: l10n.email,
-                          hint: l10n.email,
-                          icon: Icons.mail_outline_rounded,
-                          keyboardType: TextInputType.emailAddress,
-                          validator: ValidationHelper.validateEmail,
+                          controller: _phoneController,
+                          label: l10n.phoneNumber,
+                          hint: '9876543210',
+                          icon: Icons.phone_outlined,
+                          keyboardType: TextInputType.phone,
+                          validator: ValidationHelper.validatePhone,
+                          prefixText: '+91 ',
                         ),
                       ),
 
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 36),
 
-                      // Animated Password field
+                      // Send OTP button
                       FadeSlideAnimation(
                         delay: 400,
-                        child: _buildTextField(
-                          controller: _passwordController,
-                          label: l10n.password,
-                          hint: l10n.password,
-                          icon: Icons.lock_outline_rounded,
-                          obscureText: _obscurePassword,
-                          validator: ValidationHelper.validatePassword,
-                          suffixIcon: GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _obscurePassword = !_obscurePassword;
-                              });
-                            },
-                            child: Icon(
-                              _obscurePassword
-                                  ? Icons.visibility_off_outlined
-                                  : Icons.visibility_outlined,
-                              color: AppColors.textLight,
-                              size: 20,
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 14),
-
-                      // Animated Forgot password
-                      FadeSlideAnimation(
-                        delay: 500,
-                        child: Align(
-                          alignment: Alignment.centerRight,
-                          child: TextButton(
-                            onPressed: () {
-                              Navigator.pushNamed(
-                                  context, Routes.forgotPassword);
-                            },
-                            style: TextButton.styleFrom(
-                              foregroundColor: AppColors.secondary,
-                              padding: EdgeInsets.zero,
-                            ),
-                            child: Text(
-                              l10n.forgotPassword,
-                              style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 28),
-
-                      // Animated Sign in button
-                      FadeSlideAnimation(
-                        delay: 600,
                         child: SizedBox(
                           width: double.infinity,
                           height: 54,
                           child: ElevatedButton(
                             onPressed:
-                                authProvider.isLoading ? null : _handleLogin,
+                                authProvider.isLoading ? null : _handleSendOtp,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primary,
                               foregroundColor: Colors.white,
@@ -224,7 +161,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                   )
                                 : Text(
-                                    l10n.signIn,
+                                    l10n.sendOtp,
                                     style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600,
@@ -236,9 +173,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
                       const SizedBox(height: 28),
 
-                      // Animated Divider
+                      // Divider
                       FadeSlideAnimation(
-                        delay: 700,
+                        delay: 500,
                         child: Row(
                           children: [
                             Expanded(
@@ -270,9 +207,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
                       const SizedBox(height: 24),
 
-                      // Animated Sign up button
+                      // Sign up button
                       FadeSlideAnimation(
-                        delay: 800,
+                        delay: 600,
                         child: SizedBox(
                           width: double.infinity,
                           height: 54,
@@ -363,9 +300,8 @@ class _LoginScreenState extends State<LoginScreen> {
     required String hint,
     required IconData icon,
     TextInputType? keyboardType,
-    bool obscureText = false,
     String? Function(String?)? validator,
-    Widget? suffixIcon,
+    String? prefixText,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -382,7 +318,6 @@ class _LoginScreenState extends State<LoginScreen> {
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
-          obscureText: obscureText,
           validator: validator,
           style: const TextStyle(
             fontSize: 15,
@@ -406,15 +341,11 @@ class _LoginScreenState extends State<LoginScreen> {
               minWidth: 20,
               minHeight: 20,
             ),
-            suffixIcon: suffixIcon != null
-                ? Padding(
-                    padding: const EdgeInsets.only(right: 14),
-                    child: suffixIcon,
-                  )
-                : null,
-            suffixIconConstraints: const BoxConstraints(
-              minWidth: 20,
-              minHeight: 20,
+            prefixText: prefixText,
+            prefixStyle: const TextStyle(
+              fontSize: 15,
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w500,
             ),
             filled: true,
             fillColor: Colors.white,

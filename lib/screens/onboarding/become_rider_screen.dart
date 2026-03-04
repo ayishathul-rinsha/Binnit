@@ -6,6 +6,8 @@ import '../../providers/onboarding_provider.dart';
 import '../../providers/auth_provider.dart' as app_auth;
 import '../../providers/collector_provider.dart';
 import '../../models/models.dart';
+import '../../services/otp_service.dart';
+import '../../services/auth_service.dart';
 import '../../utils/constants.dart';
 import '../../routes/app_routes.dart';
 import '../../l10n/app_localizations.dart';
@@ -29,6 +31,7 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
   final _phoneFocus = FocusNode();
   final _otpFocus = FocusNode();
   bool _otpSent = false;
+  String? _customToken;
 
   // Step 2: Personal details
   final _nameController = TextEditingController();
@@ -188,25 +191,112 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
   }
 
   Future<void> _sendOtp() async {
-    if (_phoneController.text.length < 10) return;
+    final phone = _phoneController.text.trim();
+    if (phone.length < 10) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please enter a valid 10-digit phone number'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
 
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 1));
-    setState(() {
-      _otpSent = true;
-      _isLoading = false;
-    });
+
+    try {
+      final result = await OtpService.sendOtp(phone);
+
+      if (mounted) {
+        setState(() => _isLoading = false);
+        if (result['success'] == true) {
+          setState(() => _otpSent = true);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('OTP sent successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message'] ?? 'Failed to send OTP'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _verifyOtp() async {
-    if (_otpController.text.length < 4) return;
+    final otp = _otpController.text.trim();
+    if (otp.length < 6) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please enter the 6-digit OTP'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
 
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(milliseconds: 800));
-    setState(() {
-      _isLoading = false;
-    });
-    _nextStep();
+
+    try {
+      final phone = _phoneController.text.trim();
+      final result = await OtpService.verifyOtp(phone, otp);
+
+      if (result['success'] == true) {
+        // Store the custom token for use during registration
+        _customToken = result['token'] as String?;
+
+        if (mounted) {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Phone verified successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          _nextStep();
+        }
+      } else {
+        if (mounted) {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message'] ?? 'Invalid OTP'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _submitApplication() async {
@@ -215,37 +305,38 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Create Firebase Auth account using email from personal details
-      final email = _emailController.text.trim();
-      // Use phone number as temporary password (user can reset later)
-      final password = _phoneController.text.trim();
+      // Sign in with the custom token obtained during OTP verification
+      if (_customToken == null || _customToken!.isEmpty) {
+        throw Exception(
+            'Phone not verified. Please go back and verify your phone number.');
+      }
 
-      // Create user in Firebase Auth
-      final UserCredential result =
-          await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      final authResult = await AuthService.loginWithCustomToken(_customToken!);
 
-      if (result.user == null) {
+      if (authResult['success'] != true) {
+        throw Exception(authResult['message'] ?? 'Authentication failed');
+      }
+
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
         throw Exception('Failed to create account');
       }
 
       // Update display name
-      await result.user!.updateDisplayName(_nameController.text.trim());
+      await user.updateDisplayName(_nameController.text.trim());
 
       // Build collector profile with all form data
       final collector = Collector(
-        id: result.user!.uid,
+        id: user.uid,
         name: _nameController.text.trim(),
-        email: email,
+        email: _emailController.text.trim(),
         phone: _phoneController.text.trim(),
         isOnline: false,
         rating: 0.0,
         totalPickups: 0,
         totalHoursToday: 0,
         vehicle: VehicleDetails(
-          id: 'vehicle_${result.user!.uid}',
+          id: 'vehicle_${user.uid}',
           vehicleType: _vehicleType,
           vehicleNumber: '',
         ),
@@ -265,7 +356,7 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
 
       await FirebaseFirestore.instance
           .collection('users')
-          .doc(result.user!.uid)
+          .doc(user.uid)
           .set(profileData);
 
       // Update providers so the app recognizes the logged-in user
@@ -293,26 +384,6 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
 
       if (mounted) {
         Navigator.pushReplacementNamed(context, Routes.registrationComplete);
-      }
-    } on FirebaseAuthException catch (e) {
-      String message;
-      switch (e.code) {
-        case 'email-already-in-use':
-          message = 'An account with this email already exists';
-          break;
-        case 'weak-password':
-          message = 'Password is too weak';
-          break;
-        case 'invalid-email':
-          message = 'Invalid email address';
-          break;
-        default:
-          message = 'Registration failed: ${e.message}';
-      }
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message), backgroundColor: Colors.red),
-        );
       }
     } catch (e) {
       if (mounted) {

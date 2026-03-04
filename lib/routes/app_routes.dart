@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import '../screens/auth/splash_screen.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/signup_screen.dart';
-import '../screens/auth/forgot_password_screen.dart';
+import '../screens/auth/otp_verification_screen.dart';
 
 // Onboarding Screens
 import '../screens/onboarding/permissions_screen.dart';
@@ -29,7 +29,7 @@ class Routes {
   static const String splash = '/';
   static const String login = '/login';
   static const String signup = '/signup';
-  static const String forgotPassword = '/forgot-password';
+  static const String otpVerification = '/otp-verification';
 
   // Onboarding
   static const String permissions = '/permissions';
@@ -60,8 +60,11 @@ class AppRouter {
         return _buildRoute(const LoginScreen());
       case Routes.signup:
         return _buildRoute(const SignupScreen());
-      case Routes.forgotPassword:
-        return _buildRoute(const ForgotPasswordScreen());
+      case Routes.otpVerification:
+        final args = settings.arguments as Map<String, dynamic>?;
+        return _buildRoute(
+          OtpVerificationScreen(phone: args?['phone'] ?? ''),
+        );
 
       // Onboarding routes
       case Routes.permissions:

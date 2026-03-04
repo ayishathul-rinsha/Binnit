@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/models.dart';
 
-/// Authentication Service - Real Firebase Auth
+/// Authentication Service — Firebase Custom Token Auth
 class AuthService {
   static final FirebaseAuth _auth = FirebaseAuth.instance;
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -13,27 +13,18 @@ class AuthService {
   /// Get current Firebase user
   static User? get currentUser => _auth.currentUser;
 
-  /// Login with Firebase Auth
-  static Future<Map<String, dynamic>> login(
-    String email,
-    String password,
+  /// Sign in using the Firebase custom token returned by verify-otp
+  static Future<Map<String, dynamic>> loginWithCustomToken(
+    String token,
   ) async {
     try {
-      if (email.isEmpty || password.isEmpty) {
-        return {'success': false, 'message': 'Email and password required'};
-      }
-
-      // Sign in with Firebase Auth
-      final UserCredential result = await _auth.signInWithEmailAndPassword(
-        email: email.trim(),
-        password: password,
-      );
+      final UserCredential result = await _auth.signInWithCustomToken(token);
 
       if (result.user == null) {
-        return {'success': false, 'message': 'Login failed'};
+        return {'success': false, 'message': 'Authentication failed'};
       }
 
-      // Fetch collector profile from Firestore
+      // Fetch / create collector profile from Firestore
       final collector = await _getOrCreateCollectorProfile(result.user!);
 
       // Cache locally
@@ -43,79 +34,6 @@ class AuthService {
         'success': true,
         'collector': collector,
       };
-    } on FirebaseAuthException catch (e) {
-      return {'success': false, 'message': _getAuthErrorMessage(e.code)};
-    } catch (e) {
-      return {'success': false, 'message': e.toString()};
-    }
-  }
-
-  /// Signup with Firebase Auth
-  static Future<Map<String, dynamic>> signup({
-    required String name,
-    required String email,
-    required String phone,
-    required String password,
-  }) async {
-    try {
-      if (name.isEmpty || email.isEmpty || password.isEmpty) {
-        return {'success': false, 'message': 'All fields are required'};
-      }
-
-      // Create user in Firebase Auth
-      final UserCredential result = await _auth.createUserWithEmailAndPassword(
-        email: email.trim(),
-        password: password,
-      );
-
-      if (result.user == null) {
-        return {'success': false, 'message': 'Signup failed'};
-      }
-
-      // Update display name
-      await result.user!.updateDisplayName(name);
-
-      // Create collector profile in Firestore
-      final collector = Collector(
-        id: result.user!.uid,
-        name: name,
-        email: email.trim(),
-        phone: phone,
-        isOnline: false,
-        rating: 0.0,
-        totalPickups: 0,
-        totalHoursToday: 0,
-      );
-
-      // Save to Firestore
-      await _firestore
-          .collection('users')
-          .doc(result.user!.uid)
-          .set(collector.toJson());
-
-      // Cache locally
-      await _saveUser(collector);
-
-      return {
-        'success': true,
-        'collector': collector,
-      };
-    } on FirebaseAuthException catch (e) {
-      return {'success': false, 'message': _getAuthErrorMessage(e.code)};
-    } catch (e) {
-      return {'success': false, 'message': e.toString()};
-    }
-  }
-
-  /// Forgot password - sends real reset email
-  static Future<Map<String, dynamic>> forgotPassword(String email) async {
-    try {
-      if (email.isEmpty) {
-        return {'success': false, 'message': 'Email is required'};
-      }
-
-      await _auth.sendPasswordResetEmail(email: email.trim());
-      return {'success': true, 'message': 'Password reset email sent'};
     } on FirebaseAuthException catch (e) {
       return {'success': false, 'message': _getAuthErrorMessage(e.code)};
     } catch (e) {
@@ -163,7 +81,7 @@ class AuthService {
     // Create new profile if doesn't exist
     final collector = Collector(
       id: user.uid,
-      name: user.displayName ?? user.email?.split('@').first ?? 'User',
+      name: user.displayName ?? user.phoneNumber ?? 'User',
       email: user.email ?? '',
       phone: user.phoneNumber ?? '',
       isOnline: false,
@@ -185,7 +103,7 @@ class AuthService {
     await _saveUser(collector);
   }
 
-  // Private helper - cache user locally
+  // Private helper — cache user locally
   static Future<void> _saveUser(Collector collector) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_userKey, jsonEncode(collector.toJson()));
@@ -194,22 +112,14 @@ class AuthService {
   /// Get human-readable error message from Firebase error codes
   static String _getAuthErrorMessage(String code) {
     switch (code) {
-      case 'user-not-found':
-        return 'No account found with this email';
-      case 'wrong-password':
-        return 'Incorrect password';
-      case 'email-already-in-use':
-        return 'An account already exists with this email';
-      case 'weak-password':
-        return 'Password is too weak (min 6 characters)';
-      case 'invalid-email':
-        return 'Invalid email address';
+      case 'invalid-custom-token':
+        return 'Invalid authentication token. Please try again.';
+      case 'custom-token-mismatch':
+        return 'Token mismatch. Please try again.';
       case 'user-disabled':
         return 'This account has been disabled';
       case 'too-many-requests':
         return 'Too many attempts. Please try again later';
-      case 'invalid-credential':
-        return 'Invalid email or password';
       default:
         return 'Authentication error: $code';
     }

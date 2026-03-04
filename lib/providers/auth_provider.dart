@@ -2,8 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/models.dart';
 import '../services/auth_service.dart';
+import '../services/otp_service.dart';
 
-/// Authentication Provider for state management - Firebase Auth
+/// Authentication Provider for state management — Phone OTP Auth
 class AuthProvider extends ChangeNotifier {
   Collector? _collector;
   bool _isLoading = false;
@@ -39,89 +40,72 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// Login with Firebase Auth
-  Future<bool> login({required String email, required String password}) async {
+  /// Send OTP to phone number
+  Future<Map<String, dynamic>> sendOtp({required String phone}) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      final result = await AuthService.login(email, password);
+      final result = await OtpService.sendOtp(phone);
 
-      if (result['success'] == true && result['collector'] != null) {
-        _collector = result['collector'] as Collector;
-        _isLoggedIn = true;
-        _isLoading = false;
-        notifyListeners();
-        return true;
-      } else {
-        _error = result['message'] ?? 'Login failed';
-        _isLoading = false;
-        notifyListeners();
-        return false;
+      _isLoading = false;
+      if (result['success'] != true) {
+        _error = result['message'] ?? 'Failed to send OTP';
       }
+      notifyListeners();
+      return result;
     } catch (e) {
       _error = e.toString();
       _isLoading = false;
       notifyListeners();
-      return false;
+      return {'success': false, 'message': e.toString()};
     }
   }
 
-  /// Signup with Firebase Auth
-  Future<bool> signup({
-    required String name,
-    required String email,
+  /// Verify OTP and sign in with the Firebase custom token
+  Future<bool> verifyOtp({
     required String phone,
-    required String password,
+    required String otp,
   }) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      final result = await AuthService.signup(
-        name: name,
-        email: email,
-        phone: phone,
-        password: password,
-      );
+      // Step 1 — verify OTP with backend, get Firebase custom token
+      final otpResult = await OtpService.verifyOtp(phone, otp);
 
-      if (result['success'] == true && result['collector'] != null) {
-        _collector = result['collector'] as Collector;
+      if (otpResult['success'] != true) {
+        _error = otpResult['message'] ?? 'Invalid OTP';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
+      final String? token = otpResult['token'] as String?;
+      if (token == null || token.isEmpty) {
+        _error = 'No authentication token received';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
+      // Step 2 — sign in to Firebase with the custom token
+      final authResult = await AuthService.loginWithCustomToken(token);
+
+      if (authResult['success'] == true && authResult['collector'] != null) {
+        _collector = authResult['collector'] as Collector;
         _isLoggedIn = true;
         _isLoading = false;
         notifyListeners();
         return true;
       } else {
-        _error = result['message'] ?? 'Signup failed';
+        _error = authResult['message'] ?? 'Authentication failed';
         _isLoading = false;
         notifyListeners();
         return false;
       }
-    } catch (e) {
-      _error = e.toString();
-      _isLoading = false;
-      notifyListeners();
-      return false;
-    }
-  }
-
-  /// Forgot password - sends Firebase reset email
-  Future<bool> forgotPassword({required String email}) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
-    try {
-      final result = await AuthService.forgotPassword(email);
-      _isLoading = false;
-
-      if (result['success'] != true) {
-        _error = result['message'];
-      }
-      notifyListeners();
-      return result['success'] == true;
     } catch (e) {
       _error = e.toString();
       _isLoading = false;
