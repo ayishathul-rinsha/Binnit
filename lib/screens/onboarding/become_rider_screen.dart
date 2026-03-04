@@ -7,7 +7,6 @@ import '../../providers/auth_provider.dart' as app_auth;
 import '../../providers/collector_provider.dart';
 import '../../models/models.dart';
 import '../../services/otp_service.dart';
-import '../../services/auth_service.dart';
 import '../../utils/constants.dart';
 import '../../routes/app_routes.dart';
 import '../../l10n/app_localizations.dart';
@@ -31,7 +30,7 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
   final _phoneFocus = FocusNode();
   final _otpFocus = FocusNode();
   bool _otpSent = false;
-  String? _customToken;
+  bool _phoneVerified = false;
 
   // Step 2: Personal details
   final _nameController = TextEditingController();
@@ -212,11 +211,13 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
       if (mounted) {
         setState(() => _isLoading = false);
         if (result['success'] == true) {
+          final otp = result['otp'] as String;
           setState(() => _otpSent = true);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('OTP sent successfully!'),
+            SnackBar(
+              content: Text('Your OTP is: $otp (dev mode)'),
               backgroundColor: Colors.green,
+              duration: const Duration(seconds: 10),
             ),
           );
         } else {
@@ -262,11 +263,11 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
       final result = await OtpService.verifyOtp(phone, otp);
 
       if (result['success'] == true) {
-        // Store the custom token for use during registration
-        _customToken = result['token'] as String?;
-
         if (mounted) {
-          setState(() => _isLoading = false);
+          setState(() {
+            _isLoading = false;
+            _phoneVerified = true;
+          });
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Phone verified successfully!'),
@@ -305,19 +306,16 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Sign in with the custom token obtained during OTP verification
-      if (_customToken == null || _customToken!.isEmpty) {
+      // Verify phone was verified via fake OTP
+      if (!_phoneVerified) {
         throw Exception(
             'Phone not verified. Please go back and verify your phone number.');
       }
 
-      final authResult = await AuthService.loginWithCustomToken(_customToken!);
+      // Sign in anonymously to get a Firebase UID
+      final authResult = await FirebaseAuth.instance.signInAnonymously();
+      final user = authResult.user;
 
-      if (authResult['success'] != true) {
-        throw Exception(authResult['message'] ?? 'Authentication failed');
-      }
-
-      final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
         throw Exception('Failed to create account');
       }
