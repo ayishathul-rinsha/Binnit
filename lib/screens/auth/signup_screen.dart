@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
-import '../../routes/app_routes.dart';
 import '../../utils/constants.dart';
 import '../../utils/helpers.dart';
 import '../../widgets/widgets.dart';
 
-/// Signup screen — name + phone → send OTP
+/// Signup screen — email + password
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
 
@@ -16,40 +15,60 @@ class SignupScreen extends StatefulWidget {
 
 class _SignupScreenState extends State<SignupScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _phoneController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
 
-  final _nameFocus = FocusNode();
-  final _phoneFocus = FocusNode();
+  final _emailFocus = FocusNode();
+  final _passwordFocus = FocusNode();
+  final _confirmFocus = FocusNode();
+
+  bool _obscurePassword = true;
+  bool _obscureConfirm = true;
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _phoneController.dispose();
-    _nameFocus.dispose();
-    _phoneFocus.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    _emailFocus.dispose();
+    _passwordFocus.dispose();
+    _confirmFocus.dispose();
     super.dispose();
   }
 
   Future<void> _handleSignup() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final phone = _phoneController.text.trim();
+    if (_passwordController.text != _confirmPasswordController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Passwords do not match'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
 
-    final result = await authProvider.sendOtp(phone: phone);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    final result = await authProvider.signUp(email: email, password: password);
 
     if (result['success'] == true && mounted) {
-      // Navigate to OTP verification, passing phone number
-      Navigator.pushNamed(
-        context,
-        Routes.otpVerification,
-        arguments: {'phone': phone},
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['message'] ?? 'Account created!'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 4),
+        ),
       );
+      Navigator.pop(context); // Go back to login
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(authProvider.error ?? 'Failed to send OTP'),
+          content: Text(authProvider.error ?? 'Signup failed'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -91,36 +110,88 @@ class _SignupScreenState extends State<SignupScreen> {
 
                       const SizedBox(height: AppDimens.paddingXL),
 
-                      // Name field
+                      // Email field
                       CustomTextField(
-                        label: 'Full Name',
-                        hint: 'Enter your full name',
-                        controller: _nameController,
-                        focusNode: _nameFocus,
-                        nextFocus: _phoneFocus,
-                        prefixIcon: const Icon(Icons.person_outline),
-                        validator: ValidationHelper.validateName,
+                        label: 'Email Address',
+                        hint: 'your@email.com',
+                        controller: _emailController,
+                        focusNode: _emailFocus,
+                        nextFocus: _passwordFocus,
+                        prefixIcon: const Icon(Icons.email_outlined),
+                        keyboardType: TextInputType.emailAddress,
+                        validator: ValidationHelper.validateEmail,
                       ),
 
                       const SizedBox(height: AppDimens.paddingM),
 
-                      // Phone field
+                      // Password field
                       CustomTextField(
-                        label: 'Phone Number',
-                        hint: '9876543210',
-                        controller: _phoneController,
-                        keyboardType: TextInputType.phone,
-                        focusNode: _phoneFocus,
+                        label: 'Password',
+                        hint: 'At least 6 characters',
+                        controller: _passwordController,
+                        focusNode: _passwordFocus,
+                        nextFocus: _confirmFocus,
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        obscureText: _obscurePassword,
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                          ),
+                          onPressed: () {
+                            setState(
+                                () => _obscurePassword = !_obscurePassword);
+                          },
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Password is required';
+                          }
+                          if (value.length < 6) {
+                            return 'Password must be at least 6 characters';
+                          }
+                          return null;
+                        },
+                      ),
+
+                      const SizedBox(height: AppDimens.paddingM),
+
+                      // Confirm Password field
+                      CustomTextField(
+                        label: 'Confirm Password',
+                        hint: 'Re-enter your password',
+                        controller: _confirmPasswordController,
+                        focusNode: _confirmFocus,
                         textInputAction: TextInputAction.done,
-                        prefixIcon: const Icon(Icons.phone_outlined),
-                        validator: ValidationHelper.validatePhone,
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        obscureText: _obscureConfirm,
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscureConfirm
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                          ),
+                          onPressed: () {
+                            setState(() => _obscureConfirm = !_obscureConfirm);
+                          },
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please confirm your password';
+                          }
+                          if (value != _passwordController.text) {
+                            return 'Passwords do not match';
+                          }
+                          return null;
+                        },
                       ),
 
                       const SizedBox(height: AppDimens.paddingXL),
 
-                      // Signup button — sends OTP
+                      // Create Account button
                       CustomButton(
-                        text: 'Continue with OTP',
+                        text: 'Create Account',
                         onPressed: _handleSignup,
                         isLoading: authProvider.isLoading,
                       ),

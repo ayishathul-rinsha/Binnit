@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/models.dart';
 import '../services/auth_service.dart';
-import '../services/otp_service.dart';
 
-/// Authentication Provider for state management — Phone OTP Auth
+/// Authentication Provider — Email + Password Auth
 class AuthProvider extends ChangeNotifier {
   Collector? _collector;
   bool _isLoading = false;
@@ -23,7 +23,6 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Check Firebase Auth state
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         final storedUser = await AuthService.getStoredUser();
@@ -40,78 +39,103 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// Send OTP to phone number
-  Future<Map<String, dynamic>> sendOtp({required String phone}) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
-    try {
-      final result = await OtpService.sendOtp(phone);
-
-      _isLoading = false;
-      if (result['success'] != true) {
-        _error = result['message'] ?? 'Failed to send OTP';
-      }
-      notifyListeners();
-      return result;
-    } catch (e) {
-      _error = e.toString();
-      _isLoading = false;
-      notifyListeners();
-      return {'success': false, 'message': e.toString()};
-    }
-  }
-
-  /// Verify OTP and sign in with the Firebase custom token
-  Future<bool> verifyOtp({
-    required String phone,
-    required String otp,
+  /// Sign up with email + password
+  Future<Map<String, dynamic>> signUp({
+    required String email,
+    required String password,
   }) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      // Step 1 — verify OTP with backend, get Firebase custom token
-      final otpResult = await OtpService.verifyOtp(phone, otp);
+      final userCredential =
+          await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
 
-      if (otpResult['success'] != true) {
-        _error = otpResult['message'] ?? 'Invalid OTP';
-        _isLoading = false;
-        notifyListeners();
-        return false;
-      }
+      // Send email verification
+      await userCredential.user?.sendEmailVerification();
 
-      final String? token = otpResult['token'] as String?;
-      if (token == null || token.isEmpty) {
-        _error = 'No authentication token received';
-        _isLoading = false;
-        notifyListeners();
-        return false;
-      }
-
-      // Step 2 — sign in to Firebase with the custom token
-      final authResult = await AuthService.loginWithCustomToken(token);
-
-      if (authResult['success'] == true && authResult['collector'] != null) {
-        _collector = authResult['collector'] as Collector;
-        _isLoggedIn = true;
-        _isLoading = false;
-        notifyListeners();
-        return true;
-      } else {
-        _error = authResult['message'] ?? 'Authentication failed';
-        _isLoading = false;
-        notifyListeners();
-        return false;
-      }
+      _isLoading = false;
+      notifyListeners();
+      return {
+        'success': true,
+        'message':
+            'Account created! Please check your email to verify your account.',
+      };
+    } on FirebaseAuthException catch (e) {
+      _error = _getAuthError(e.code);
+      _isLoading = false;
+      notifyListeners();
+      return {'success': false, 'message': _error};
     } catch (e) {
       _error = e.toString();
       _isLoading = false;
       notifyListeners();
-      return false;
+      return {'success': false, 'message': _error};
     }
+  }
+
+  /// Login with email + password
+  Future<Map<String, dynamic>> login({
+    required String email,
+    required String password,
+  }) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final userCredential =
+          await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      final user = userCredential.user;
+      if (user == null) {
+        _error = 'Login failed';
+        _isLoading = false;
+        notifyListeners();
+        return {'success': false, 'message': _error};
+      }
+
+      // Fetch collector profile from Firestore
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      if (doc.exists) {
+        _collector = Collector.fromJson({...doc.data()!, 'id': user.uid});
+        _isLoggedIn = true;
+      } else {
+        _isLoggedIn = true;
+      }
+
+      _isLoading = false;
+      notifyListeners();
+      return {'success': true, 'message': 'Logged in successfully!'};
+    } on FirebaseAuthException catch (e) {
+      _error = _getAuthError(e.code);
+      _isLoading = false;
+      notifyListeners();
+      return {'success': false, 'message': _error};
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return {'success': false, 'message': _error};
+    }
+  }
+
+  /// Resend email verification
+  Future<void> resendVerification() async {
+    try {
+      await FirebaseAuth.instance.currentUser?.sendEmailVerification();
+    } catch (_) {}
   }
 
   /// Logout from Firebase
@@ -131,7 +155,7 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// Update local collector data (after profile edits)
+  /// Update local collector data
   void updateCollector(Collector collector) {
     _collector = collector;
     notifyListeners();
@@ -141,5 +165,29 @@ class AuthProvider extends ChangeNotifier {
   void clearError() {
     _error = null;
     notifyListeners();
+  }
+
+  /// Human-readable error messages
+  String _getAuthError(String code) {
+    switch (code) {
+      case 'email-already-in-use':
+        return 'This email is already registered. Please login instead.';
+      case 'invalid-email':
+        return 'Invalid email address.';
+      case 'weak-password':
+        return 'Password is too weak. Use at least 6 characters.';
+      case 'user-not-found':
+        return 'No account found with this email.';
+      case 'wrong-password':
+        return 'Incorrect password.';
+      case 'user-disabled':
+        return 'This account has been disabled.';
+      case 'too-many-requests':
+        return 'Too many attempts. Please try again later.';
+      case 'invalid-credential':
+        return 'Invalid email or password.';
+      default:
+        return 'Authentication error: $code';
+    }
   }
 }

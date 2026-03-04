@@ -6,7 +6,6 @@ import '../../providers/onboarding_provider.dart';
 import '../../providers/auth_provider.dart' as app_auth;
 import '../../providers/collector_provider.dart';
 import '../../models/models.dart';
-import '../../services/otp_service.dart';
 import '../../utils/constants.dart';
 import '../../routes/app_routes.dart';
 import '../../l10n/app_localizations.dart';
@@ -24,12 +23,14 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
   int _currentStep = 0;
   bool _isLoading = false;
 
-  // Step 1: Phone
+  // Step 1: Email + Password
+  final _emailRegController = TextEditingController();
+  final _passwordRegController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _otpController = TextEditingController();
+  final _emailRegFocus = FocusNode();
+  final _passwordRegFocus = FocusNode();
   final _phoneFocus = FocusNode();
-  final _otpFocus = FocusNode();
-  bool _otpSent = false;
+  bool _obscureRegPassword = true;
 
   // Step 2: Personal details
   final _nameController = TextEditingController();
@@ -153,14 +154,16 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
   @override
   void dispose() {
     _pageController.dispose();
+    _emailRegController.dispose();
+    _passwordRegController.dispose();
     _phoneController.dispose();
-    _otpController.dispose();
     _nameController.dispose();
     _emailController.dispose();
     _addressController.dispose();
     _experienceController.dispose();
+    _emailRegFocus.dispose();
+    _passwordRegFocus.dispose();
     _phoneFocus.dispose();
-    _otpFocus.dispose();
     _nameFocus.dispose();
     _emailFocus.dispose();
     _addressFocus.dispose();
@@ -188,13 +191,40 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
     }
   }
 
-  Future<void> _sendOtp() async {
+  Future<void> _handleEmailSignup() async {
+    final email = _emailRegController.text.trim();
+    final password = _passwordRegController.text.trim();
     final phone = _phoneController.text.trim();
+
+    if (email.isEmpty || !email.contains('@')) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please enter a valid email address'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    if (password.length < 6) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Password must be at least 6 characters'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
     if (phone.length < 10) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Please enter a valid 10-digit phone number'),
+            content: Text('Please enter a valid phone number'),
             backgroundColor: Colors.red,
           ),
         );
@@ -205,96 +235,49 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final result = await OtpService.sendOtp(phone);
+      // Create account with email + password
+      final userCredential =
+          await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      // Send email verification
+      await userCredential.user?.sendEmailVerification();
 
       if (mounted) {
         setState(() => _isLoading = false);
-        if (result['success'] == true) {
-          if (result['autoVerified'] == true) {
-            // Phone was auto-verified (some Android devices)
-            setState(() => _otpSent = true);
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Phone auto-verified!'),
-                backgroundColor: Colors.green,
-              ),
-            );
-            _nextStep();
-          } else {
-            // OTP sent via SMS
-            setState(() => _otpSent = true);
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('OTP sent! Check your SMS.'),
-                backgroundColor: Colors.green,
-              ),
-            );
-          }
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(result['message'] ?? 'Failed to send OTP'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _verifyOtp() async {
-    final otp = _otpController.text.trim();
-    if (otp.length < 6) {
-      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Please enter the 6-digit OTP'),
-            backgroundColor: Colors.red,
+            content: Text('Account created! Verification email sent.'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
           ),
         );
+        // Pre-fill email in step 2
+        _emailController.text = email;
+        _nextStep();
       }
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
-    try {
-      final phone = _phoneController.text.trim();
-      final result = await OtpService.verifyOtp(phone, otp);
-
-      if (result['success'] == true) {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Phone verified successfully!'),
-              backgroundColor: Colors.green,
-            ),
-          );
-          _nextStep();
+    } on FirebaseAuthException catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        String message;
+        switch (e.code) {
+          case 'email-already-in-use':
+            message = 'This email is already registered. Please login instead.';
+            break;
+          case 'invalid-email':
+            message = 'Invalid email address.';
+            break;
+          case 'weak-password':
+            message = 'Password is too weak. Use at least 6 characters.';
+            break;
+          default:
+            message = 'Error: ${e.message}';
         }
-      } else {
-        if (mounted) {
-          setState(() => _isLoading = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(result['message'] ?? 'Invalid OTP'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message), backgroundColor: Colors.red),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -437,7 +420,7 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
               controller: _pageController,
               physics: const NeverScrollableScrollPhysics(),
               children: [
-                _buildPhoneStep(l10n),
+                _buildEmailStep(l10n),
                 _buildPersonalStep(l10n),
                 _buildWorkStep(l10n),
               ],
@@ -476,15 +459,15 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
     );
   }
 
-  Widget _buildPhoneStep(AppLocalizations l10n) {
+  Widget _buildEmailStep(AppLocalizations l10n) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            l10n.phoneVerification,
-            style: const TextStyle(
+          const Text(
+            'Create Account',
+            style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w700,
               color: AppColors.textPrimary,
@@ -492,7 +475,7 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            l10n.enterPhone,
+            'Enter your details to get started',
             style: TextStyle(
               fontSize: 15,
               color: AppColors.textSecondary,
@@ -500,42 +483,85 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
           ),
           const SizedBox(height: 32),
           _buildTextField(
+            controller: _emailRegController,
+            label: l10n.emailAddress,
+            hint: 'your@email.com',
+            keyboardType: TextInputType.emailAddress,
+            focusNode: _emailRegFocus,
+            nextFocus: _passwordRegFocus,
+          ),
+          const SizedBox(height: 20),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l10n.password,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _passwordRegController,
+                obscureText: _obscureRegPassword,
+                focusNode: _passwordRegFocus,
+                onFieldSubmitted: (_) => _phoneFocus.requestFocus(),
+                decoration: InputDecoration(
+                  hintText: 'At least 6 characters',
+                  hintStyle:
+                      TextStyle(color: AppColors.textLight, fontSize: 14),
+                  prefixIcon: const Icon(Icons.lock_outline, size: 20),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscureRegPassword
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                      size: 20,
+                    ),
+                    onPressed: () {
+                      setState(
+                          () => _obscureRegPassword = !_obscureRegPassword);
+                    },
+                  ),
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppColors.border),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppColors.border),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide:
+                        const BorderSide(color: AppColors.primary, width: 1.5),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _buildTextField(
             controller: _phoneController,
             label: l10n.phoneNumber,
             hint: '10-digit number',
             prefix: '+91 ',
             keyboardType: TextInputType.phone,
-            enabled: !_otpSent,
             focusNode: _phoneFocus,
-            onSubmit: _otpSent ? null : _sendOtp,
-            nextFocus: _otpSent ? _otpFocus : null,
+            onSubmit: _handleEmailSignup,
           ),
-          if (_otpSent) ...[
-            const SizedBox(height: 24),
-            _buildTextField(
-              controller: _otpController,
-              label: 'OTP',
-              hint: '6-digit OTP',
-              keyboardType: TextInputType.number,
-              focusNode: _otpFocus,
-              onSubmit: _verifyOtp,
-              textInputAction: TextInputAction.done,
-            ),
-            const SizedBox(height: 12),
-            TextButton(
-              onPressed: _sendOtp,
-              child: Text(
-                l10n.resendOtp,
-                style: TextStyle(color: AppColors.primaryLight),
-              ),
-            ),
-          ],
           const SizedBox(height: 32),
           SizedBox(
             width: double.infinity,
             height: 54,
             child: ElevatedButton(
-              onPressed: _isLoading ? null : (_otpSent ? _verifyOtp : _sendOtp),
+              onPressed: _isLoading ? null : _handleEmailSignup,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
@@ -553,9 +579,9 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
                         color: Colors.white,
                       ),
                     )
-                  : Text(
-                      _otpSent ? l10n.verifyOtp : l10n.sendOtp,
-                      style: const TextStyle(
+                  : const Text(
+                      'Create Account & Continue',
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
