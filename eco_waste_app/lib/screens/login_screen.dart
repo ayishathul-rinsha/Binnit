@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/services.dart';
-import 'dart:async';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../theme/app_theme.dart';
 import '../services/auth_service.dart';
 import '../main.dart' show languageService;
@@ -21,28 +18,10 @@ class _LoginScreenState extends State<LoginScreen>
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _phoneController = TextEditingController();
-  final List<TextEditingController> _otpControllers = List.generate(
-    6,
-    (index) => TextEditingController(),
-  );
-  final List<FocusNode> _otpFocusNodes = List.generate(
-    6,
-    (index) => FocusNode(),
-  );
 
   bool _obscurePassword = true;
   bool _rememberMe = false;
   bool _isLoading = false;
-  bool _isOtpSent = false;
-  bool _isPhoneVerified = false; // Track if phone is verified
-  bool _isVerifying = false;
-  int _resendSeconds = 30;
-  Timer? _resendTimer;
-  String _selectedCountryCode = '+91';
-
-  // Current step: 1 = Phone, 2 = OTP, 3 = Email/Password
-  int _currentStep = 1;
 
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -80,28 +59,8 @@ class _LoginScreenState extends State<LoginScreen>
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
-    _phoneController.dispose();
-    for (var controller in _otpControllers) {
-      controller.dispose();
-    }
-    for (var node in _otpFocusNodes) {
-      node.dispose();
-    }
-    _resendTimer?.cancel();
     _animationController.dispose();
     super.dispose();
-  }
-
-  void _startResendTimer() {
-    _resendSeconds = 30;
-    _resendTimer?.cancel();
-    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_resendSeconds > 0) {
-        setState(() => _resendSeconds--);
-      } else {
-        timer.cancel();
-      }
-    });
   }
 
   final AuthService _authService = AuthService();
@@ -109,31 +68,14 @@ class _LoginScreenState extends State<LoginScreen>
   Future<void> _handleGoogleSignIn() async {
     setState(() => _isLoading = true);
 
-    // TODO: Implement Google Sign-In with google_sign_in package
-    // For now, show a message
-    if (mounted) {
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Google Sign-In coming soon! Use phone + email login.'),
-          backgroundColor: AppTheme.primaryGreen,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
-    }
-  }
-
-  Future<void> _handleLogin() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() => _isLoading = true);
-
     try {
-      await _authService.loginWithEmail(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-      );
+      final userCredential = await _authService.signInWithGoogle();
+
+      if (userCredential == null) {
+        // User cancelled
+        if (mounted) setState(() => _isLoading = false);
+        return;
+      }
 
       if (mounted) {
         setState(() => _isLoading = false);
@@ -157,116 +99,34 @@ class _LoginScreenState extends State<LoginScreen>
     }
   }
 
-  Future<void> _sendOtp() async {
-    if (_phoneController.text.length < 10) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Please enter a valid phone number'),
-          backgroundColor: AppTheme.errorColor,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
-      return;
-    }
+  Future<void> _handleLogin() async {
+    if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
-    final phoneNumber = '$_selectedCountryCode${_phoneController.text.trim()}';
-
-    await _authService.sendOtp(
-      phoneNumber: phoneNumber,
-      onCodeSent: (verificationId) {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-            _isOtpSent = true;
-            _currentStep = 2;
-          });
-          _startResendTimer();
-          _otpFocusNodes[0].requestFocus();
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('OTP sent to $phoneNumber'),
-              backgroundColor: AppTheme.successColor,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-          );
-        }
-      },
-      onError: (error) {
-        if (mounted) {
-          setState(() => _isLoading = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(error),
-              backgroundColor: AppTheme.errorColor,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-          );
-        }
-      },
-      onAutoVerified: (credential) async {
-        // Auto-verification on Android
-        try {
-          await FirebaseAuth.instance.signInWithCredential(credential);
-          if (mounted) {
-            setState(() {
-              _isLoading = false;
-              _isPhoneVerified = true;
-              _currentStep = 3;
-            });
-          }
-        } catch (e) {
-          if (mounted) {
-            setState(() => _isLoading = false);
-          }
-        }
-      },
-    );
-  }
-
-  Future<void> _verifyOtp() async {
-    String otp = _otpControllers.map((c) => c.text).join();
-    if (otp.length != 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Please enter complete OTP'),
-          backgroundColor: AppTheme.errorColor,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
-      return;
-    }
-
-    setState(() => _isVerifying = true);
-
     try {
-      await _authService.verifyOtp(otp);
+      final credential = await _authService.loginWithEmail(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
 
       if (mounted) {
-        setState(() {
-          _isVerifying = false;
-          _isPhoneVerified = true;
-          _currentStep = 3;
-        });
+        setState(() => _isLoading = false);
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Phone verified! Now set up your email & password.'),
-            backgroundColor: AppTheme.successColor,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
+        // Check email verification
+        if (credential.user != null && !credential.user!.emailVerified) {
+          _showEmailVerificationDialog();
+          return;
+        }
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
         );
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _isVerifying = false);
+        setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(AuthService.getErrorMessage(e)),
@@ -279,31 +139,229 @@ class _LoginScreenState extends State<LoginScreen>
     }
   }
 
-  void _onOtpChanged(String value, int index) {
-    if (value.length == 1 && index < 5) {
-      _otpFocusNodes[index + 1].requestFocus();
-    } else if (value.isEmpty && index > 0) {
-      _otpFocusNodes[index - 1].requestFocus();
-    }
-    
-    // Auto verify when all fields are filled
-    if (index == 5 && value.isNotEmpty) {
-      String otp = _otpControllers.map((c) => c.text).join();
-      if (otp.length == 6) {
-        _verifyOtp();
-      }
-    }
-    setState(() {}); // Refresh to update OTP field styles
+  void _showEmailVerificationDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 70,
+                height: 70,
+                decoration: BoxDecoration(
+                  color: AppTheme.warningColor.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.mark_email_unread_rounded,
+                  color: AppTheme.warningColor,
+                  size: 36,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                languageService.t('verify_email_title'),
+                style: AppTheme.headingSmall,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                languageService.t('verify_email_desc'),
+                style: AppTheme.bodyMedium.copyWith(
+                  color: AppTheme.textSecondary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    await _authService.sendEmailVerification();
+                    if (mounted) {
+                      Navigator.pop(dialogContext);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(languageService.t('verification_email_sent')),
+                          backgroundColor: AppTheme.successColor,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                  style: AppTheme.primaryButtonStyle,
+                  child: Text(
+                    languageService.t('resend_verification'),
+                    style: AppTheme.buttonText,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: () async {
+                  await _authService.reloadUser();
+                  if (_authService.isEmailVerified && mounted) {
+                    Navigator.pop(dialogContext);
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (_) => const HomeScreen()),
+                    );
+                  } else if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(languageService.t('email_not_verified_yet')),
+                        backgroundColor: AppTheme.errorColor,
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    );
+                  }
+                },
+                child: Text(
+                  languageService.t('already_verified'),
+                  style: AppTheme.bodyMedium.copyWith(
+                    color: AppTheme.primaryGreen,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(dialogContext);
+                },
+                child: Text(
+                  languageService.t('cancel'),
+                  style: AppTheme.bodyMedium.copyWith(
+                    color: AppTheme.textLight,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
-  void _resetPhoneLogin() {
-    setState(() {
-      _isOtpSent = false;
-      _currentStep = 1;
-      for (var controller in _otpControllers) {
-        controller.clear();
-      }
-    });
+  void _showForgotPasswordDialog() {
+    final resetEmailController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 70,
+                height: 70,
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryGreen.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.lock_reset_rounded,
+                  color: AppTheme.primaryGreen,
+                  size: 36,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                languageService.t('forgot_password'),
+                style: AppTheme.headingSmall,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                languageService.t('forgot_password_desc'),
+                style: AppTheme.bodyMedium.copyWith(
+                  color: AppTheme.textSecondary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              TextFormField(
+                controller: resetEmailController,
+                keyboardType: TextInputType.emailAddress,
+                style: AppTheme.bodyLarge,
+                decoration: AppTheme.inputDecoration(
+                  hintText: languageService.t('email_address'),
+                  prefixIcon: Icons.email_outlined,
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    final email = resetEmailController.text.trim();
+                    if (email.isEmpty) return;
+                    
+                    try {
+                      await _authService.resetPassword(email);
+                      if (mounted) {
+                        Navigator.pop(dialogContext);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(languageService.t('reset_email_sent')),
+                            backgroundColor: AppTheme.successColor,
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(AuthService.getErrorMessage(e)),
+                            backgroundColor: AppTheme.errorColor,
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  style: AppTheme.primaryButtonStyle,
+                  child: Text(
+                    languageService.t('send_reset_link'),
+                    style: AppTheme.buttonText,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: Text(
+                  languageService.t('cancel'),
+                  style: AppTheme.bodyMedium.copyWith(
+                    color: AppTheme.textLight,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -324,17 +382,16 @@ class _LoginScreenState extends State<LoginScreen>
                   children: [
                     const SizedBox(height: 40),
                     _buildHeader(),
-                    const SizedBox(height: 24),
-                    _buildStepIndicator(),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 32),
                     _buildGoogleSignInButton(),
                     const SizedBox(height: 20),
                     _buildDivider(),
                     const SizedBox(height: 24),
-                    AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 300),
-                      child: _buildCurrentStep(),
-                    ),
+                    _buildEmailLoginForm(),
+                    const SizedBox(height: 16),
+                    _buildRememberForgot(),
+                    const SizedBox(height: 24),
+                    _buildLoginButton(),
                     const SizedBox(height: 24),
                     _buildSignUpLink(),
                     const SizedBox(height: 40),
@@ -344,136 +401,6 @@ class _LoginScreenState extends State<LoginScreen>
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildCurrentStep() {
-    switch (_currentStep) {
-      case 1:
-        return _buildPhoneSection();
-      case 2:
-        return _buildOtpSection();
-      case 3:
-        return _buildEmailLoginForm();
-      default:
-        return _buildPhoneSection();
-    }
-  }
-
-  Widget _buildStepIndicator() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.inputBackground,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppTheme.dividerColor.withOpacity(0.3),
-        ),
-      ),
-      child: Row(
-        children: [
-          // Step 1: Phone
-          Expanded(
-            child: _buildStepItem(
-              stepNumber: 1,
-              label: languageService.t('phone'),
-              icon: Icons.phone_android_rounded,
-              isActive: _currentStep == 1,
-              isCompleted: _currentStep > 1,
-            ),
-          ),
-          _buildStepConnector(isCompleted: _currentStep > 1),
-          // Step 2: OTP
-          Expanded(
-            child: _buildStepItem(
-              stepNumber: 2,
-              label: languageService.t('verify'),
-              icon: Icons.sms_outlined,
-              isActive: _currentStep == 2,
-              isCompleted: _currentStep > 2,
-            ),
-          ),
-          _buildStepConnector(isCompleted: _currentStep > 2),
-          // Step 3: Email/Password
-          Expanded(
-            child: _buildStepItem(
-              stepNumber: 3,
-              label: languageService.t('account'),
-              icon: Icons.email_outlined,
-              isActive: _currentStep == 3,
-              isCompleted: false,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStepItem({
-    required int stepNumber,
-    required String label,
-    required IconData icon,
-    required bool isActive,
-    required bool isCompleted,
-  }) {
-    Color bgColor = isCompleted
-        ? AppTheme.successColor
-        : isActive
-            ? AppTheme.primaryGreen
-            : AppTheme.inputBackground;
-    Color iconColor = isCompleted || isActive ? Colors.white : AppTheme.textLight;
-    Color textColor = isCompleted || isActive ? AppTheme.textPrimary : AppTheme.textLight;
-
-    return Column(
-      children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: bgColor,
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: isCompleted || isActive
-                  ? Colors.transparent
-                  : AppTheme.dividerColor.withOpacity(0.5),
-              width: 1.5,
-            ),
-            boxShadow: isActive
-                ? [
-                    BoxShadow(
-                      color: AppTheme.primaryGreen.withOpacity(0.4),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ]
-                : null,
-          ),
-          child: isCompleted
-              ? const Icon(Icons.check_rounded, color: Colors.white, size: 20)
-              : Icon(icon, color: iconColor, size: 18),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-            color: textColor,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStepConnector({required bool isCompleted}) {
-    return Container(
-      width: 30,
-      height: 2,
-      margin: const EdgeInsets.only(bottom: 20),
-      decoration: BoxDecoration(
-        color: isCompleted ? AppTheme.successColor : AppTheme.dividerColor.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(1),
       ),
     );
   }
@@ -505,12 +432,12 @@ class _LoginScreenState extends State<LoginScreen>
         ),
         const SizedBox(height: 32),
         Text(
-          _getHeaderTitle(),
+          languageService.t('welcome_back'),
           style: AppTheme.headingLarge,
         ),
         const SizedBox(height: 8),
         Text(
-          _getHeaderSubtitle(),
+          languageService.t('sign_in_to_continue'),
           style: AppTheme.bodyMedium.copyWith(
             color: AppTheme.textSecondary,
             fontSize: 15,
@@ -518,32 +445,6 @@ class _LoginScreenState extends State<LoginScreen>
         ),
       ],
     );
-  }
-
-  String _getHeaderTitle() {
-    switch (_currentStep) {
-      case 1:
-        return languageService.t('welcome_back');
-      case 2:
-        return languageService.t('verify_otp');
-      case 3:
-        return languageService.t('almost_done');
-      default:
-        return languageService.t('welcome_back');
-    }
-  }
-
-  String _getHeaderSubtitle() {
-    switch (_currentStep) {
-      case 1:
-        return languageService.t('enter_phone');
-      case 2:
-        return languageService.t('enter_otp');
-      case 3:
-        return languageService.t('setup_email');
-      default:
-        return languageService.t('enter_phone');
-    }
   }
 
   Widget _buildGoogleSignInButton() {
@@ -556,36 +457,44 @@ class _LoginScreenState extends State<LoginScreen>
             const EdgeInsets.symmetric(vertical: 16),
           ),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Center(
-                child: Text(
-                  'G',
-                  style: TextStyle(
-                    color: Colors.blue.shade700,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
+        child: _isLoading
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
                 ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'G',
+                        style: TextStyle(
+                          color: Colors.blue.shade700,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    languageService.t('continue_google'),
+                    style: AppTheme.bodyLarge.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              languageService.t('continue_google'),
-              style: AppTheme.bodyLarge.copyWith(
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -609,7 +518,7 @@ class _LoginScreenState extends State<LoginScreen>
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Text(
-            languageService.t('or_continue_phone'),
+            languageService.t('or_login_email'),
             style: AppTheme.bodySmall.copyWith(
               color: AppTheme.textLight,
             ),
@@ -632,463 +541,59 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  Widget _buildPhoneSection() {
-    return Column(
-      key: const ValueKey('phone'),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Phone number input with country code
-        Container(
-          decoration: BoxDecoration(
-            color: AppTheme.inputBackground,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: AppTheme.dividerColor.withOpacity(0.5),
-            ),
-          ),
-          child: Row(
-            children: [
-              // Country code dropdown
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(
-                  border: Border(
-                    right: BorderSide(
-                      color: AppTheme.dividerColor.withOpacity(0.5),
-                    ),
-                  ),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _selectedCountryCode,
-                    items: const [
-                      DropdownMenuItem(value: '+91', child: Text('🇮🇳 +91')),
-                      DropdownMenuItem(value: '+1', child: Text('🇺🇸 +1')),
-                      DropdownMenuItem(value: '+44', child: Text('🇬🇧 +44')),
-                      DropdownMenuItem(value: '+61', child: Text('🇦🇺 +61')),
-                    ],
-                    onChanged: (value) {
-                      setState(() => _selectedCountryCode = value!);
-                    },
-                    style: AppTheme.bodyLarge.copyWith(
-                      fontWeight: FontWeight.w500,
-                    ),
-                    icon: const Icon(
-                      Icons.keyboard_arrow_down_rounded,
-                      color: AppTheme.textLight,
-                      size: 20,
-                    ),
-                  ),
-                ),
-              ),
-              // Phone number field
-              Expanded(
-                child: TextFormField(
-                  controller: _phoneController,
-                  keyboardType: TextInputType.phone,
-                  style: AppTheme.bodyLarge.copyWith(
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: 1,
-                  ),
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(10),
-                  ],
-                  decoration: InputDecoration(
-                    hintText: languageService.t('enter_phone_number'),
-                    hintStyle: AppTheme.bodyMedium.copyWith(
-                      color: AppTheme.textLight,
-                    ),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 18,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 24),
-        
-        // Send OTP Button
-        SizedBox(
-          width: double.infinity,
-          height: 56,
-          child: ElevatedButton(
-            onPressed: _isLoading ? null : _sendOtp,
-            style: AppTheme.primaryButtonStyle,
-            child: _isLoading
-                ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2.5,
-                    ),
-                  )
-                : Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.sms_outlined, size: 20),
-                      const SizedBox(width: 8),
-                      Text(
-                        languageService.t('send_otp'),
-                        style: AppTheme.buttonText,
-                      ),
-                    ],
-                  ),
-          ),
-        ),
-        
-        const SizedBox(height: 20),
-        
-        // Security note
-        Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: AppTheme.primaryGreen.withOpacity(0.08),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryGreen.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.shield_outlined,
-                  color: AppTheme.primaryGreen,
-                  size: 18,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                   languageService.t('phone_secure_note'),
-                  style: AppTheme.bodySmall.copyWith(
-                    color: AppTheme.textSecondary,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildOtpSection() {
-    return Column(
-      key: const ValueKey('otp'),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // OTP header
-        Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: AppTheme.primaryGreen.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(
-                Icons.sms_outlined,
-                color: AppTheme.primaryGreen,
-                size: 22,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                   Text(
-                     languageService.t('enter_otp_label'),
-                     style: AppTheme.headingSmall,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                     '${languageService.t('sent_to')} $_selectedCountryCode ${_phoneController.text}',
-                    style: AppTheme.bodySmall.copyWith(
-                      color: AppTheme.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            GestureDetector(
-              onTap: _resetPhoneLogin,
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppTheme.inputBackground,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.edit_outlined,
-                  color: AppTheme.primaryGreen,
-                  size: 18,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 24),
-        
-        // OTP input fields
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: List.generate(6, (index) {
-            return SizedBox(
-              width: 48,
-              height: 56,
-              child: TextFormField(
-                controller: _otpControllers[index],
-                focusNode: _otpFocusNodes[index],
-                keyboardType: TextInputType.number,
-                textAlign: TextAlign.center,
-                maxLength: 1,
-                style: AppTheme.headingMedium.copyWith(
-                  fontSize: 22,
-                ),
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                ],
-                decoration: InputDecoration(
-                  counterText: '',
-                  filled: true,
-                  fillColor: _otpControllers[index].text.isNotEmpty
-                      ? AppTheme.primaryGreen.withOpacity(0.1)
-                      : AppTheme.inputBackground,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color: _otpControllers[index].text.isNotEmpty
-                          ? AppTheme.primaryGreen
-                          : AppTheme.dividerColor.withOpacity(0.5),
-                      width: 1.5,
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                      color: AppTheme.primaryGreen,
-                      width: 2,
-                    ),
-                  ),
-                ),
-                onChanged: (value) => _onOtpChanged(value, index),
-              ),
-            );
-          }),
-        ),
-        
-        const SizedBox(height: 24),
-        
-        // Verify Button
-        SizedBox(
-          width: double.infinity,
-          height: 56,
-          child: ElevatedButton(
-            onPressed: _isVerifying ? null : _verifyOtp,
-            style: AppTheme.primaryButtonStyle,
-            child: _isVerifying
-                ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2.5,
-                    ),
-                  )
-                : Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.verified_outlined, size: 20),
-                      const SizedBox(width: 8),
-                       Text(
-                         languageService.t('verify_otp_btn'),
-                         style: AppTheme.buttonText,
-                       ),
-                    ],
-                  ),
-          ),
-        ),
-        
-        const SizedBox(height: 20),
-        
-        // Resend OTP section
-        Center(
-          child: Column(
-            children: [
-              Text(
-                languageService.t('didnt_receive'),
-                style: AppTheme.bodySmall.copyWith(
-                  color: AppTheme.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 6),
-              _resendSeconds > 0
-                  ? Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.timer_outlined,
-                          size: 16,
-                          color: AppTheme.textLight,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Resend in $_resendSeconds s',
-                          style: AppTheme.bodySmall.copyWith(
-                            color: AppTheme.textLight,
-                          ),
-                        ),
-                      ],
-                    )
-                  : GestureDetector(
-                      onTap: _sendOtp,
-                      child: Text(
-                         languageService.t('resend_otp'),
-                        style: AppTheme.bodyMedium.copyWith(
-                          color: AppTheme.primaryGreen,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildEmailLoginForm() {
-    return Column(
-      key: const ValueKey('email'),
-      children: [
-        // Phone verified badge
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: AppTheme.successColor.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppTheme.successColor.withOpacity(0.3),
+    return Form(
+      key: _formKey,
+      child: Column(
+        children: [
+          TextFormField(
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            style: AppTheme.bodyLarge,
+            decoration: AppTheme.inputDecoration(
+              hintText: languageService.t('email_address'),
+              prefixIcon: Icons.email_outlined,
             ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return languageService.t('enter_email');
+              }
+              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                return languageService.t('valid_email');
+              }
+              return null;
+            },
           ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: AppTheme.successColor,
-                  shape: BoxShape.circle,
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _passwordController,
+            obscureText: _obscurePassword,
+            style: AppTheme.bodyLarge,
+            decoration: AppTheme.inputDecoration(
+              hintText: languageService.t('password'),
+              prefixIcon: Icons.lock_outline_rounded,
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _obscurePassword
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                  color: AppTheme.textLight,
+                  size: 22,
                 ),
-                child: const Icon(
-                  Icons.check_rounded,
-                  color: Colors.white,
-                  size: 14,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                       languageService.t('phone_verified'),
-                      style: AppTheme.bodyMedium.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.successColor,
-                      ),
-                    ),
-                    Text(
-                      '$_selectedCountryCode ${_phoneController.text}',
-                      style: AppTheme.bodySmall.copyWith(
-                        color: AppTheme.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.verified_rounded,
-                color: AppTheme.successColor,
-                size: 24,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 20),
-        
-        Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              TextFormField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                style: AppTheme.bodyLarge,
-                decoration: AppTheme.inputDecoration(
-                   hintText: languageService.t('email_address'),
-                  prefixIcon: Icons.email_outlined,
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                     return languageService.t('enter_email');
-                  }
-                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                     return languageService.t('valid_email');
-                  }
-                  return null;
+                onPressed: () {
+                  setState(() => _obscurePassword = !_obscurePassword);
                 },
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _passwordController,
-                obscureText: _obscurePassword,
-                style: AppTheme.bodyLarge,
-                decoration: AppTheme.inputDecoration(
-                   hintText: languageService.t('password'),
-                  prefixIcon: Icons.lock_outline_rounded,
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscurePassword
-                          ? Icons.visibility_off_outlined
-                          : Icons.visibility_outlined,
-                      color: AppTheme.textLight,
-                      size: 22,
-                    ),
-                    onPressed: () {
-                      setState(() => _obscurePassword = !_obscurePassword);
-                    },
-                  ),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                     return languageService.t('enter_password');
-                  }
-                  return null;
-                },
-              ),
-            ],
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return languageService.t('enter_password');
+              }
+              return null;
+            },
           ),
-        ),
-        const SizedBox(height: 16),
-        _buildRememberForgot(),
-        const SizedBox(height: 24),
-        _buildLoginButton(),
-      ],
+        ],
+      ),
     );
   }
 
@@ -1114,7 +619,7 @@ class _LoginScreenState extends State<LoginScreen>
             ),
             const SizedBox(width: 8),
             Text(
-               languageService.t('remember_me'),
+              languageService.t('remember_me'),
               style: AppTheme.bodySmall.copyWith(
                 color: AppTheme.textSecondary,
                 fontSize: 13,
@@ -1123,11 +628,9 @@ class _LoginScreenState extends State<LoginScreen>
           ],
         ),
         GestureDetector(
-          onTap: () {
-            // Handle forgot password
-          },
+          onTap: _showForgotPasswordDialog,
           child: Text(
-             languageService.t('forgot_password'),
+            languageService.t('forgot_password'),
             style: AppTheme.bodySmall.copyWith(
               color: AppTheme.primaryGreen,
               fontWeight: FontWeight.w600,
@@ -1160,10 +663,10 @@ class _LoginScreenState extends State<LoginScreen>
                 children: [
                   const Icon(Icons.login_rounded, size: 20),
                   const SizedBox(width: 8),
-                   Text(
-                     languageService.t('complete_sign_in'),
-                     style: AppTheme.buttonText,
-                   ),
+                  Text(
+                    languageService.t('sign_in'),
+                    style: AppTheme.buttonText,
+                  ),
                 ],
               ),
       ),
@@ -1176,9 +679,9 @@ class _LoginScreenState extends State<LoginScreen>
         text: TextSpan(
           style: AppTheme.bodyMedium,
           children: [
-             TextSpan(text: languageService.t('dont_have_account')),
+            TextSpan(text: languageService.t('dont_have_account')),
             TextSpan(
-               text: languageService.t('sign_up'),
+              text: languageService.t('sign_up'),
               style: const TextStyle(
                 color: AppTheme.primaryGreen,
                 fontWeight: FontWeight.w600,

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../theme/app_theme.dart';
-import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../main.dart' show languageService;
 import 'schedule_pickup_screen.dart';
@@ -11,6 +10,7 @@ import 'marketplace_screen.dart';
 import 'subscription_screen.dart';
 import 'pickup_details_screen.dart';
 import 'pickup_tracking_screen.dart';
+import 'profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -245,6 +245,22 @@ class _HomeDashboard extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          // Profile avatar
+          GestureDetector(
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const ProfileScreen())),
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: AppTheme.primaryGreen.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppTheme.primaryGreen.withOpacity(0.3)),
+              ),
+              child: const Icon(Icons.person_rounded, color: AppTheme.primaryGreen, size: 24),
             ),
           ),
         ],
@@ -898,8 +914,9 @@ class _HomeDashboard extends StatelessWidget {
   }
 
   Widget _buildSubscriptionBanner(BuildContext context, String currentPlan) {
-    if (currentPlan == 'Pro' || currentPlan == 'EcoPro') {
-      return const SizedBox.shrink(); // Hide if already pro
+    // Hide upgrade banner if user has any paid plan
+    if (currentPlan == 'Basic' || currentPlan == 'Pro' || currentPlan == 'Premium' || currentPlan == 'EcoPro') {
+      return const SizedBox.shrink();
     }
 
     return Padding(

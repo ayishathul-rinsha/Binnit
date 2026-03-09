@@ -22,6 +22,7 @@ class AppTheme {
   static const Color dividerColor = Color(0xFFE0E0E0);
   static const Color errorColor = Color(0xFFE57373);
   static const Color successColor = Color(0xFF81C784);
+  static const Color warningColor = Color(0xFFFFB74D);
   
   // Gradients
   static const LinearGradient primaryGradient = LinearGradient(

@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService {
   static final AuthService _instance = AuthService._internal();
@@ -8,18 +9,58 @@ class AuthService {
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
 
   // Current user
   User? get currentUser => _auth.currentUser;
   bool get isLoggedIn => _auth.currentUser != null;
+  bool get isEmailVerified => _auth.currentUser?.emailVerified ?? false;
   Stream<User?> get authStateChanges => _auth.authStateChanges();
+
+  // ─── Google Sign-In ─────────────────────────────────────────────────────────
+  Future<UserCredential?> signInWithGoogle() async {
+    try {
+      // Trigger the authentication flow
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+
+      if (googleUser == null) {
+        // User cancelled the sign-in
+        return null;
+      }
+
+      // Obtain the auth details from the request
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      // Create a new credential
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      // Sign in to Firebase with the Google credential
+      final userCredential = await _auth.signInWithCredential(credential);
+
+      // Create/update user document in Firestore
+      if (userCredential.user != null) {
+        await _createUserDocument(
+          uid: userCredential.user!.uid,
+          fullName: userCredential.user!.displayName ?? 'User',
+          email: userCredential.user!.email ?? '',
+        );
+      }
+
+      return userCredential;
+    } catch (e) {
+      rethrow;
+    }
+  }
 
   // ─── Email/Password Sign Up ─────────────────────────────────────────────────
   Future<UserCredential> signUpWithEmail({
     required String email,
     required String password,
     required String fullName,
-    String? phone,
   }) async {
     try {
       final credential = await _auth.createUserWithEmailAndPassword(
@@ -30,12 +71,14 @@ class AuthService {
       // Update display name
       await credential.user?.updateDisplayName(fullName);
 
+      // Send email verification
+      await credential.user?.sendEmailVerification();
+
       // Create user document in Firestore
       await _createUserDocument(
         uid: credential.user!.uid,
         fullName: fullName,
         email: email,
-        phone: phone,
       );
 
       return credential;
@@ -59,54 +102,13 @@ class AuthService {
     }
   }
 
-  // ─── Phone OTP Verification ────────────────────────────────────────────────
-  String? _verificationId;
-  int? _resendToken;
-
-  Future<void> sendOtp({
-    required String phoneNumber,
-    required Function(String verificationId) onCodeSent,
-    required Function(String error) onError,
-    required Function(PhoneAuthCredential credential) onAutoVerified,
-  }) async {
-    await _auth.verifyPhoneNumber(
-      phoneNumber: phoneNumber,
-      timeout: const Duration(seconds: 60),
-      verificationCompleted: (PhoneAuthCredential credential) async {
-        // Auto-verification (Android only)
-        onAutoVerified(credential);
-      },
-      verificationFailed: (FirebaseAuthException e) {
-        onError(e.message ?? 'Verification failed');
-      },
-      codeSent: (String verificationId, int? resendToken) {
-        _verificationId = verificationId;
-        _resendToken = resendToken;
-        onCodeSent(verificationId);
-      },
-      codeAutoRetrievalTimeout: (String verificationId) {
-        _verificationId = verificationId;
-      },
-      forceResendingToken: _resendToken,
-    );
+  // ─── Email Verification ─────────────────────────────────────────────────────
+  Future<void> sendEmailVerification() async {
+    await _auth.currentUser?.sendEmailVerification();
   }
 
-  Future<UserCredential> verifyOtp(String otp) async {
-    if (_verificationId == null) {
-      throw Exception('No verification ID. Send OTP first.');
-    }
-
-    final credential = PhoneAuthProvider.credential(
-      verificationId: _verificationId!,
-      smsCode: otp,
-    );
-
-    return await _auth.signInWithCredential(credential);
-  }
-
-  // Link phone number to existing account
-  Future<void> linkPhoneCredential(PhoneAuthCredential credential) async {
-    await _auth.currentUser?.linkWithCredential(credential);
+  Future<void> reloadUser() async {
+    await _auth.currentUser?.reload();
   }
 
   // ─── Password Reset ────────────────────────────────────────────────────────
@@ -116,6 +118,7 @@ class AuthService {
 
   // ─── Sign Out ──────────────────────────────────────────────────────────────
   Future<void> signOut() async {
+    await _googleSignIn.signOut();
     await _auth.signOut();
   }
 
@@ -124,12 +127,10 @@ class AuthService {
     required String uid,
     required String fullName,
     required String email,
-    String? phone,
   }) async {
     await _firestore.collection('users').doc(uid).set({
       'fullName': fullName,
       'email': email,
-      'phone': phone ?? '',
       'createdAt': FieldValue.serverTimestamp(),
       'ecoPoints': 0,
       'totalWasteRecycled': 0.0,
@@ -170,10 +171,10 @@ class AuthService {
           return 'Too many attempts. Please wait and try again.';
         case 'user-disabled':
           return 'This account has been disabled.';
-        case 'invalid-verification-code':
-          return 'Invalid OTP. Please check and try again.';
-        case 'session-expired':
-          return 'OTP expired. Please request a new one.';
+        case 'account-exists-with-different-credential':
+          return 'An account already exists with a different sign-in method.';
+        case 'operation-not-allowed':
+          return 'This sign-in method is not enabled. Please contact support.';
         default:
           return error.message ?? 'An authentication error occurred.';
       }

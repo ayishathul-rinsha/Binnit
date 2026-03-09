@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../theme/app_theme.dart';
+import '../services/firestore_service.dart';
 import '../main.dart' show languageService;
 
 class SubscriptionScreen extends StatefulWidget {
@@ -12,8 +14,12 @@ class SubscriptionScreen extends StatefulWidget {
 class _SubscriptionScreenState extends State<SubscriptionScreen>
     with SingleTickerProviderStateMixin {
   int _selectedPlan = 1; // Pro is default selected
+  bool _isUpgrading = false;
+  String _currentPlan = 'Free';
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
+
+  final FirestoreService _firestoreService = FirestoreService();
 
   final List<Map<String, dynamic>> _plans = [
     {
@@ -91,6 +97,112 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
     super.dispose();
   }
 
+  /// Actually update the subscription in Firestore
+  Future<void> _handleSubscribe() async {
+    final plan = _plans[_selectedPlan];
+    final planName = plan['name'] as String;
+
+    // Don't allow subscribing to the same plan
+    if (planName == _currentPlan) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('You are already on the $planName plan.'),
+          backgroundColor: AppTheme.warningColor,
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isUpgrading = true);
+
+    try {
+      // Update subscription in Firestore
+      await _firestoreService.updateSubscription(planName);
+
+      if (mounted) {
+        setState(() => _isUpgrading = false);
+
+        // Show success dialog
+        _showUpgradeSuccessDialog(planName);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isUpgrading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Upgrade failed: ${e.toString()}'),
+            backgroundColor: AppTheme.errorColor,
+            behavior: SnackBarBehavior.floating,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
+    }
+  }
+
+  void _showUpgradeSuccessDialog(String planName) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: AppTheme.successColor.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_circle_rounded,
+                  color: AppTheme.successColor,
+                  size: 50,
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Upgrade Successful! 🎉',
+                style: AppTheme.headingSmall,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'You are now on the $planName plan. Enjoy all the premium features!',
+                style: AppTheme.bodyMedium.copyWith(
+                  color: AppTheme.textSecondary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(dialogContext);
+                    Navigator.pop(context); // Go back to home
+                  },
+                  style: AppTheme.primaryButtonStyle,
+                  child: const Text('Back to Home',
+                      style: TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.w600)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -98,31 +210,42 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
       body: SafeArea(
         child: FadeTransition(
           opacity: _fadeAnim,
-          child: Column(
-            children: [
-              _buildAppBar(),
-              Expanded(
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 8),
-                      _buildHeaderBanner(),
-                      const SizedBox(height: 24),
-                      _buildCurrentPlan(),
-                      const SizedBox(height: 28),
-                      _buildPlanCards(),
-                      const SizedBox(height: 28),
-                      _buildBenefits(),
-                      const SizedBox(height: 28),
-                      _buildFAQ(),
-                      const SizedBox(height: 100),
-                    ],
+          child: StreamBuilder<DocumentSnapshot>(
+            stream: _firestoreService.getUserProfileStream(),
+            builder: (context, snapshot) {
+              if (snapshot.hasData && snapshot.data?.data() != null) {
+                final userData =
+                    snapshot.data!.data() as Map<String, dynamic>;
+                _currentPlan = userData['subscriptionPlan'] ?? 'Free';
+              }
+
+              return Column(
+                children: [
+                  _buildAppBar(),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 8),
+                          _buildHeaderBanner(),
+                          const SizedBox(height: 24),
+                          _buildCurrentPlan(),
+                          const SizedBox(height: 28),
+                          _buildPlanCards(),
+                          const SizedBox(height: 28),
+                          _buildBenefits(),
+                          const SizedBox(height: 28),
+                          _buildFAQ(),
+                          const SizedBox(height: 100),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            ],
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -142,7 +265,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
               decoration: BoxDecoration(
                 color: AppTheme.inputBackground,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppTheme.dividerColor.withOpacity(0.3)),
+                border:
+                    Border.all(color: AppTheme.dividerColor.withOpacity(0.3)),
               ),
               child: const Icon(Icons.arrow_back_ios_new_rounded,
                   size: 18, color: AppTheme.textPrimary),
@@ -152,7 +276,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
           Expanded(
             child: Text(
               languageService.t('subscription'),
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: AppTheme.textPrimary,
@@ -222,7 +346,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
             ),
             const SizedBox(height: 14),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(12),
@@ -250,24 +375,40 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
   }
 
   Widget _buildCurrentPlan() {
+    final isPaid =
+        _currentPlan != 'Free' && _currentPlan.isNotEmpty;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFFFFF8E1),
+          color: isPaid ? const Color(0xFFE8F5E9) : const Color(0xFFFFF8E1),
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: const Color(0xFFFFE082).withOpacity(0.5)),
+          border: Border.all(
+              color: isPaid
+                  ? const Color(0xFF81C784).withOpacity(0.5)
+                  : const Color(0xFFFFE082).withOpacity(0.5)),
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFE082).withOpacity(0.3),
+                color: isPaid
+                    ? const Color(0xFF81C784).withOpacity(0.3)
+                    : const Color(0xFFFFE082).withOpacity(0.3),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(Icons.eco_rounded, color: Color(0xFFF9A825), size: 24),
+              child: Icon(
+                isPaid
+                    ? Icons.workspace_premium_rounded
+                    : Icons.eco_rounded,
+                color: isPaid
+                    ? const Color(0xFF2E7D32)
+                    : const Color(0xFFF9A825),
+                size: 24,
+              ),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -275,39 +416,64 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '${languageService.t('current_plan')}: ${languageService.t('basic_plan')}',
+                    '${languageService.t('current_plan')}: $_currentPlan',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFFE65100),
+                      color: isPaid
+                          ? const Color(0xFF2E7D32)
+                          : const Color(0xFFE65100),
                     ),
                   ),
-                  SizedBox(height: 2),
+                  const SizedBox(height: 2),
                   Text(
-                    '2 of 4 pickups used this month',
+                    isPaid
+                        ? 'Enjoying premium features!'
+                        : 'Upgrade to unlock more features',
                     style: TextStyle(
                       fontSize: 12,
-                      color: Color(0xFF795548),
+                      color: isPaid
+                          ? const Color(0xFF388E3C)
+                          : const Color(0xFF795548),
                     ),
                   ),
                 ],
               ),
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFE082).withOpacity(0.4),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Text(
-                'Upgrade',
-                style: TextStyle(
-                  color: Color(0xFFE65100),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
+            if (isPaid)
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF81C784).withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Text(
+                  'Active ✓',
+                  style: TextStyle(
+                    color: Color(0xFF2E7D32),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              )
+            else
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFE082).withOpacity(0.4),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Text(
+                  'Upgrade',
+                  style: TextStyle(
+                    color: Color(0xFFE65100),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
-            ),
           ],
         ),
       ),
@@ -339,6 +505,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
     final color = plan['color'] as Color;
     final gradientColors = plan['gradient'] as List<Color>;
     final isPopular = plan['popular'] as bool;
+    final isCurrentPlan = plan['name'] == _currentPlan;
 
     return GestureDetector(
       onTap: () => setState(() => _selectedPlan = index),
@@ -359,7 +526,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
               : null,
           borderRadius: BorderRadius.circular(22),
           border: Border.all(
-            color: isSelected ? color.withOpacity(0.5) : AppTheme.dividerColor.withOpacity(0.3),
+            color: isSelected
+                ? color.withOpacity(0.5)
+                : AppTheme.dividerColor.withOpacity(0.3),
             width: isSelected ? 2 : 1,
           ),
           boxShadow: isSelected
@@ -404,7 +573,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: isSelected ? color : AppTheme.textPrimary,
+                              color:
+                                  isSelected ? color : AppTheme.textPrimary,
                             ),
                           ),
                           if (isPopular) ...[
@@ -413,13 +583,39 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
-                                gradient: LinearGradient(colors: gradientColors),
+                                gradient:
+                                    LinearGradient(colors: gradientColors),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
-                                languageService.t('popular').toUpperCase(),
-                                style: TextStyle(
+                                languageService
+                                    .t('popular')
+                                    .toUpperCase(),
+                                style: const TextStyle(
                                   color: Colors.white,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                          ],
+                          if (isCurrentPlan) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: AppTheme.successColor.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                    color:
+                                        AppTheme.successColor.withOpacity(0.4)),
+                              ),
+                              child: const Text(
+                                'CURRENT',
+                                style: TextStyle(
+                                  color: Color(0xFF2E7D32),
                                   fontSize: 9,
                                   fontWeight: FontWeight.bold,
                                   letterSpacing: 0.5,
@@ -438,7 +634,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
                             style: TextStyle(
                               fontSize: 26,
                               fontWeight: FontWeight.bold,
-                              color: isSelected ? color : AppTheme.textPrimary,
+                              color:
+                                  isSelected ? color : AppTheme.textPrimary,
                               letterSpacing: -0.5,
                             ),
                           ),
@@ -466,7 +663,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
                     ),
                   ),
                   child: isSelected
-                      ? const Icon(Icons.check_rounded, size: 14, color: Colors.white)
+                      ? const Icon(Icons.check_rounded,
+                          size: 14, color: Colors.white)
                       : null,
                 ),
               ],
@@ -497,7 +695,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
-                          included ? Icons.check_rounded : Icons.close_rounded,
+                          included
+                              ? Icons.check_rounded
+                              : Icons.close_rounded,
                           size: 12,
                           color: included ? color : AppTheme.textLight,
                         ),
@@ -510,12 +710,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
                           color: included
                               ? AppTheme.textPrimary
                               : AppTheme.textLight,
-                          fontWeight: included
-                              ? FontWeight.w500
-                              : FontWeight.normal,
-                          decoration: included
-                              ? null
-                              : TextDecoration.lineThrough,
+                          fontWeight:
+                              included ? FontWeight.w500 : FontWeight.normal,
+                          decoration:
+                              included ? null : TextDecoration.lineThrough,
                         ),
                       ),
                     ],
@@ -577,7 +775,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
     );
   }
 
-  Widget _benefitCard(IconData icon, String title, String desc, Color color) {
+  Widget _benefitCard(
+      IconData icon, String title, String desc, Color color) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -631,15 +830,18 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
     final faqs = [
       {
         'q': 'Can I change my plan anytime?',
-        'a': 'Yes! You can upgrade or downgrade anytime. Changes take effect from the next billing cycle.',
+        'a':
+            'Yes! You can upgrade or downgrade anytime. Changes take effect from the next billing cycle.',
       },
       {
         'q': 'Is there a free trial?',
-        'a': 'Yes, you get a 7-day free trial on Pro and Premium plans.',
+        'a':
+            'Yes, you get a 7-day free trial on Pro and Premium plans.',
       },
       {
         'q': 'How does auto-scheduling work?',
-        'a': 'When your smart bin reaches 80% capacity, we automatically schedule a pickup at your preferred time slot.',
+        'a':
+            'When your smart bin reaches 80% capacity, we automatically schedule a pickup at your preferred time slot.',
       },
     ];
 
@@ -665,8 +867,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
                 ],
               ),
               child: ExpansionTile(
-                tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                tilePadding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 4),
+                childrenPadding:
+                    const EdgeInsets.fromLTRB(16, 0, 16, 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
@@ -698,6 +902,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
 
   Widget _buildSubscribeButton() {
     final plan = _plans[_selectedPlan];
+    final isCurrentPlan = plan['name'] == _currentPlan;
+
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
       decoration: BoxDecoration(
@@ -756,33 +962,39 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
               child: SizedBox(
                 height: 52,
                 child: ElevatedButton(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Subscribed to ${plan['name']} plan!'),
-                        backgroundColor: AppTheme.successColor,
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    );
-                  },
+                  onPressed: isCurrentPlan || _isUpgrading
+                      ? null
+                      : _handleSubscribe,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: plan['color'],
+                    backgroundColor:
+                        isCurrentPlan ? AppTheme.textLight : plan['color'],
                     foregroundColor: Colors.white,
+                    disabledBackgroundColor:
+                        AppTheme.dividerColor.withOpacity(0.5),
+                    disabledForegroundColor: AppTheme.textLight,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
                     elevation: 0,
                   ),
-                  child: Text(
-                    languageService.t('subscribe_now'),
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  child: _isUpgrading
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2.5,
+                          ),
+                        )
+                      : Text(
+                          isCurrentPlan
+                              ? 'Current Plan'
+                              : languageService.t('subscribe_now'),
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                 ),
               ),
             ),

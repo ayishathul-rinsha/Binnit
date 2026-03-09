@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/services.dart';
 import '../theme/app_theme.dart';
 import '../services/auth_service.dart';
 import '../main.dart' show languageService;
 import 'home_screen.dart';
-import 'phone_verification_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -19,11 +17,9 @@ class _SignUpScreenState extends State<SignUpScreen>
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
-  final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  String _selectedCountryCode = '+91';
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _agreeToTerms = false;
@@ -65,7 +61,6 @@ class _SignUpScreenState extends State<SignUpScreen>
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
-    _phoneController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     _animationController.dispose();
@@ -77,67 +72,20 @@ class _SignUpScreenState extends State<SignUpScreen>
   Future<void> _handleGoogleSignIn() async {
     setState(() => _isLoading = true);
 
-    // TODO: Implement Google Sign-In with google_sign_in package
-    if (mounted) {
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Google Sign-In coming soon! Use email signup.'),
-          backgroundColor: AppTheme.primaryGreen,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
-    }
-  }
-
-  Future<void> _handleSignUp() async {
-    if (!_formKey.currentState!.validate()) return;
-    if (!_agreeToTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Please agree to Terms & Conditions'),
-          backgroundColor: AppTheme.errorColor,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
     try {
-      final phoneNumber = '$_selectedCountryCode${_phoneController.text.trim()}';
-      
-      await _authService.signUpWithEmail(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-        fullName: _nameController.text.trim(),
-        phone: phoneNumber,
-      );
+      final userCredential = await _authService.signInWithGoogle();
+
+      if (userCredential == null) {
+        // User cancelled
+        if (mounted) setState(() => _isLoading = false);
+        return;
+      }
 
       if (mounted) {
         setState(() => _isLoading = false);
-        
-        // Navigate to Phone Verification after successful sign up
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
-            builder: (context) => PhoneVerificationScreen(
-              isNewUser: true,
-              phoneNumber: _phoneController.text.trim(),
-              countryCode: _selectedCountryCode,
-            ),
-          ),
-        );
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Account created! Now verify your phone.'),
-            backgroundColor: AppTheme.successColor,
-            behavior: SnackBarBehavior.floating,
-          ),
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
         );
       }
     } catch (e) {
@@ -153,6 +101,175 @@ class _SignUpScreenState extends State<SignUpScreen>
         );
       }
     }
+  }
+
+  Future<void> _handleSignUp() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (!_agreeToTerms) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(languageService.t('agree_terms')),
+          backgroundColor: AppTheme.errorColor,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      await _authService.signUpWithEmail(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+        fullName: _nameController.text.trim(),
+      );
+
+      if (mounted) {
+        setState(() => _isLoading = false);
+        _showEmailVerificationSentDialog();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AuthService.getErrorMessage(e)),
+            backgroundColor: AppTheme.errorColor,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
+    }
+  }
+
+  void _showEmailVerificationSentDialog() {
+    final widgetContext = context;
+    showDialog(
+      context: widgetContext,
+      barrierDismissible: false,
+      builder: (dialogContext) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: AppTheme.successColor.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.mark_email_read_rounded,
+                  color: AppTheme.successColor,
+                  size: 42,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                languageService.t('verify_your_email'),
+                style: AppTheme.headingSmall,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                '${languageService.t('verification_sent_to')}\n${_emailController.text.trim()}',
+                style: AppTheme.bodyMedium.copyWith(
+                  color: AppTheme.textSecondary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                languageService.t('check_inbox_verify'),
+                style: AppTheme.bodySmall.copyWith(
+                  color: AppTheme.textLight,
+                  fontSize: 12,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    // Reload user and check verification
+                    await _authService.reloadUser();
+                    if (_authService.isEmailVerified && mounted) {
+                      Navigator.pop(dialogContext);
+                      Navigator.pushAndRemoveUntil(
+                        widgetContext,
+                        MaterialPageRoute(builder: (_) => const HomeScreen()),
+                        (route) => false,
+                      );
+                    } else if (mounted) {
+                      ScaffoldMessenger.of(widgetContext).showSnackBar(
+                        SnackBar(
+                          content: Text(languageService.t('email_not_verified_yet')),
+                          backgroundColor: AppTheme.warningColor,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                  style: AppTheme.primaryButtonStyle,
+                  child: Text(
+                    languageService.t('i_have_verified'),
+                    style: AppTheme.buttonText,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: () async {
+                  await _authService.sendEmailVerification();
+                  if (mounted) {
+                    ScaffoldMessenger.of(widgetContext).showSnackBar(
+                      SnackBar(
+                        content: Text(languageService.t('verification_email_sent')),
+                        backgroundColor: AppTheme.successColor,
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    );
+                  }
+                },
+                child: Text(
+                  languageService.t('resend_verification'),
+                  style: AppTheme.bodyMedium.copyWith(
+                    color: AppTheme.primaryGreen,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(dialogContext);
+                  // Go back to login screen
+                  Navigator.pop(widgetContext);
+                },
+                child: Text(
+                  languageService.t('back_to_login'),
+                  style: AppTheme.bodyMedium.copyWith(
+                    color: AppTheme.textLight,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -244,45 +361,48 @@ class _SignUpScreenState extends State<SignUpScreen>
       child: ElevatedButton(
         onPressed: _isLoading ? null : _handleGoogleSignIn,
         style: AppTheme.socialButtonStyle.copyWith(
-          padding: MaterialStateProperty.all(
+          padding: WidgetStateProperty.all(
             const EdgeInsets.symmetric(vertical: 16),
           ),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Image.network(
-              'https://www.google.com/favicon.ico',
-              width: 24,
-              height: 24,
-              errorBuilder: (context, error, stackTrace) => Container(
+        child: _isLoading
+            ? const SizedBox(
                 width: 24,
                 height: 24,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(4),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
                 ),
-                child: const Center(
-                  child: Text(
-                    'G',
-                    style: TextStyle(
-                      color: Colors.red,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'G',
+                        style: TextStyle(
+                          color: Colors.blue.shade700,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                  const SizedBox(width: 12),
+                  Text(
+                    languageService.t('continue_google'),
+                    style: AppTheme.bodyLarge.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              languageService.t('continue_google'),
-              style: AppTheme.bodyLarge.copyWith(
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -371,67 +491,6 @@ class _SignUpScreenState extends State<SignUpScreen>
               }
               return null;
             },
-          ),
-          const SizedBox(height: 16),
-
-          // Phone Number Field
-          Container(
-            decoration: BoxDecoration(
-              color: AppTheme.inputBackground,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: AppTheme.dividerColor.withOpacity(0.5),
-              ),
-            ),
-            child: Row(
-              children: [
-                // Country code dropdown
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    border: Border(
-                      right: BorderSide(
-                        color: AppTheme.dividerColor.withOpacity(0.5),
-                      ),
-                    ),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: _selectedCountryCode,
-                      items: const [
-                        DropdownMenuItem(value: '+91', child: Text('🇮🇳 +91')),
-                        DropdownMenuItem(value: '+1', child: Text('🇺🇸 +1')),
-                        DropdownMenuItem(value: '+44', child: Text('🇬🇧 +44')),
-                      ],
-                      onChanged: (value) {
-                        setState(() => _selectedCountryCode = value!);
-                      },
-                      style: AppTheme.bodyLarge.copyWith(fontWeight: FontWeight.w500),
-                      icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.textLight),
-                    ),
-                  ),
-                ),
-                // Phone field
-                Expanded(
-                  child: TextFormField(
-                    controller: _phoneController,
-                    keyboardType: TextInputType.phone,
-                    style: AppTheme.bodyLarge,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(10)],
-                    decoration: InputDecoration(
-                      hintText: languageService.t('phone_number'),
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 16),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) return languageService.t('enter_phone_num');
-                      if (value.length < 10) return languageService.t('valid_number');
-                      return null;
-                    },
-                  ),
-                ),
-              ],
-            ),
           ),
           const SizedBox(height: 16),
 
@@ -573,7 +632,7 @@ class _SignUpScreenState extends State<SignUpScreen>
       child: ElevatedButton(
         onPressed: _isLoading ? null : _handleSignUp,
         style: AppTheme.primaryButtonStyle.copyWith(
-          elevation: MaterialStateProperty.all(0),
+          elevation: WidgetStateProperty.all(0),
         ),
         child: _isLoading
             ? const SizedBox(
