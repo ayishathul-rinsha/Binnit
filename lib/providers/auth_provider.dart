@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../models/models.dart';
 import '../services/auth_service.dart';
 
@@ -118,6 +119,67 @@ class AuthProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
       return {'success': true, 'message': 'Logged in successfully!'};
+    } on FirebaseAuthException catch (e) {
+      _error = _getAuthError(e.code);
+      _isLoading = false;
+      notifyListeners();
+      return {'success': false, 'message': _error};
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return {'success': false, 'message': _error};
+    }
+  }
+
+  /// Login with Google
+  Future<Map<String, dynamic>> loginWithGoogle() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final GoogleSignIn googleSignIn = GoogleSignIn();
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+
+      if (googleUser == null) {
+        // User cancelled the sign-in
+        _error = 'Sign-in cancelled';
+        _isLoading = false;
+        notifyListeners();
+        return {'success': false, 'message': 'Sign-in cancelled'};
+      }
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final userCredential =
+          await FirebaseAuth.instance.signInWithCredential(credential);
+
+      final user = userCredential.user;
+      if (user == null) {
+        _error = 'Google authentication failed';
+        _isLoading = false;
+        notifyListeners();
+        return {'success': false, 'message': _error};
+      }
+
+      // Fetch or create collector profile from Firestore
+      final collector = await AuthService.getOrCreateCollectorProfile(user);
+      _collector = collector;
+      _isLoggedIn = true;
+
+      _isLoading = false;
+      notifyListeners();
+      return {
+        'success': true,
+        'message': 'Logged in with Google successfully!',
+        'collector': collector,
+      };
     } on FirebaseAuthException catch (e) {
       _error = _getAuthError(e.code);
       _isLoading = false;

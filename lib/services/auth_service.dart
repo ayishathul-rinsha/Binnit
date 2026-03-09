@@ -25,7 +25,7 @@ class AuthService {
       }
 
       // Fetch / create collector profile from Firestore
-      final collector = await _getOrCreateCollectorProfile(result.user!);
+      final collector = await getOrCreateCollectorProfile(result.user!);
 
       // Cache locally
       await _saveUser(collector);
@@ -67,11 +67,11 @@ class AuthService {
     }
 
     // Fall back to Firestore
-    return await _getOrCreateCollectorProfile(user);
+    return await getOrCreateCollectorProfile(user);
   }
 
   /// Get or create collector profile from Firestore
-  static Future<Collector> _getOrCreateCollectorProfile(User user) async {
+  static Future<Collector> getOrCreateCollectorProfile(User user) async {
     final doc = await _firestore.collection('users').doc(user.uid).get();
 
     if (doc.exists) {

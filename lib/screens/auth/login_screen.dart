@@ -53,6 +53,26 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _handleGoogleLogin() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final result = await authProvider.loginWithGoogle();
+
+    if (result['success'] == true && mounted) {
+      Navigator.pushReplacementNamed(context, Routes.main);
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(authProvider.error ?? 'Google login failed'),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -216,6 +236,44 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
 
                       const SizedBox(height: 24),
+
+                      // Google Sign-In button
+                      FadeSlideAnimation(
+                        delay: 550,
+                        child: SizedBox(
+                          width: double.infinity,
+                          height: 54,
+                          child: OutlinedButton.icon(
+                            onPressed:
+                                authProvider.isLoading ? null : _handleGoogleLogin,
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.textPrimary,
+                              side: BorderSide(
+                                color: AppColors.border,
+                                width: 1.5,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            icon: Image.asset(
+                              'assets/icons/google.png',
+                              width: 20,
+                              height: 20,
+                            ),
+                            label: Text(
+                              'Continue with Google',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
 
                       // Sign up button
                       FadeSlideAnimation(

@@ -75,6 +75,22 @@ class _SignupScreenState extends State<SignupScreen> {
     }
   }
 
+  Future<void> _handleGoogleSignup() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final result = await authProvider.loginWithGoogle();
+
+    if (result['success'] == true && mounted) {
+      Navigator.pop(context); // Go back to login/dashboard
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(authProvider.error ?? 'Google signup failed'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -194,6 +210,40 @@ class _SignupScreenState extends State<SignupScreen> {
                         text: 'Create Account',
                         onPressed: _handleSignup,
                         isLoading: authProvider.isLoading,
+                      ),
+
+                      const SizedBox(height: AppDimens.paddingM),
+
+                      // Google Sign-In button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 54,
+                        child: OutlinedButton.icon(
+                          onPressed:
+                              authProvider.isLoading ? null : _handleGoogleSignup,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.textPrimary,
+                            side: BorderSide(
+                              color: AppColors.border,
+                              width: 1.5,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          icon: Image.asset(
+                            'assets/icons/google.png',
+                            width: 20,
+                            height: 20,
+                          ),
+                          label: const Text(
+                            'Sign up with Google',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
                       ),
 
                       const SizedBox(height: AppDimens.paddingL),
