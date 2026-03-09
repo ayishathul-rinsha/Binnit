@@ -4,6 +4,7 @@
  * GET  /dashboard               — Dashboard stats
  * GET  /bins                    — Bin activity list
  * GET  /users                   — User management
+ * GET  /pickups                 — All pickup requests (with optional ?status filter)
  * GET  /pickups/pending-approval — Pickups awaiting admin approval
  * PUT  /pickups/:id/approve      — Approve or reject collector's pickup accept
  */
@@ -187,6 +188,72 @@ router.get("/users", async (req, res) => {
         res.status(statusCode).json({
             success: false,
             error: error.message || "Failed to get users",
+        });
+    }
+});
+
+// =============================================================
+//  PICKUP MANAGEMENT ENDPOINTS
+// =============================================================
+
+/**
+ * GET /api/admin/pickups?status=xxx
+ * Response: { pickups: [...], count }
+ *
+ * Returns all pickup requests. Optionally filter by status query param.
+ * Valid statuses: PENDING, AWAITING_ADMIN_APPROVAL, ACCEPTED, ON_THE_WAY,
+ *                 REACHED, PICKED_UP, COMPLETED, CANCELLED
+ */
+router.get("/pickups", async (req, res) => {
+    try {
+        await requireAdmin(req);
+        const { status } = req.query;
+
+        let query = admin.firestore().collection("pickupRequests");
+
+        if (status) {
+            query = query.where("status", "==", status.toUpperCase());
+        }
+
+        query = query.orderBy("createdAt", "desc");
+
+        const snapshot = await query.get();
+
+        const pickups = [];
+        snapshot.forEach((doc) => {
+            const data = doc.data();
+            pickups.push({
+                pickupId: doc.id,
+                userId: data.userId,
+                address: data.address,
+                date: data.date,
+                time: data.time,
+                wasteTypes: data.wasteTypes,
+                weightKg: data.weightKg,
+                price: data.price,
+                status: data.status,
+                collectorId: data.collectorId || null,
+                collectorInfo: data.collectorInfo || null,
+                driverInfo: data.driverInfo || null,
+                notes: data.notes || "",
+                isFragile: data.isFragile || false,
+                needBags: data.needBags || false,
+                needHelp: data.needHelp || false,
+                timeline: data.timeline || [],
+                priceBreakdown: data.priceBreakdown || null,
+                createdAt: data.createdAt,
+                updatedAt: data.updatedAt,
+            });
+        });
+
+        res.json({ success: true, pickups, count: pickups.length });
+    } catch (error) {
+        console.error("Get all pickups error:", error);
+        const statusCode = error.message.startsWith("Unauthorized") ? 401
+            : error.message.startsWith("Forbidden") ? 403 : 500;
+        res.status(statusCode).json({
+            success: false,
+            error: error.message || "Failed to get pickups",
         });
     }
 });
