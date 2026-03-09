@@ -105,7 +105,7 @@ class AuthProvider extends ChangeNotifier {
 
       // Fetch collector profile from Firestore
       final doc = await FirebaseFirestore.instance
-          .collection('users')
+          .collection('collectors')
           .doc(user.uid)
           .get();
 

@@ -11,7 +11,7 @@ class FirestoreService {
 
   /// Get collector profile
   static Future<Collector?> getCollector(String userId) async {
-    final doc = await _db.collection('users').doc(userId).get();
+    final doc = await _db.collection('collectors').doc(userId).get();
     if (doc.exists) {
       return Collector.fromJson({...doc.data()!, 'id': doc.id});
     }
@@ -20,12 +20,12 @@ class FirestoreService {
 
   /// Update collector profile
   static Future<void> updateCollector(Collector collector) async {
-    await _db.collection('users').doc(collector.id).update(collector.toJson());
+    await _db.collection('collectors').doc(collector.id).update(collector.toJson());
   }
 
   /// Update collector online status
   static Future<void> updateOnlineStatus(String userId, bool isOnline) async {
-    await _db.collection('users').doc(userId).update({
+    await _db.collection('collectors').doc(userId).update({
       'is_online': isOnline,
     });
   }
@@ -35,7 +35,7 @@ class FirestoreService {
     String userId,
     Map<String, dynamic> fields,
   ) async {
-    await _db.collection('users').doc(userId).update(fields);
+    await _db.collection('collectors').doc(userId).update(fields);
   }
 
   // ========================

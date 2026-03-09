@@ -338,7 +338,7 @@ class _BecomeRiderScreenState extends State<BecomeRiderScreen> {
       };
 
       await FirebaseFirestore.instance
-          .collection('users')
+          .collection('collectors')
           .doc(user.uid)
           .set(profileData);
 

@@ -72,7 +72,7 @@ class AuthService {
 
   /// Get or create collector profile from Firestore
   static Future<Collector> getOrCreateCollectorProfile(User user) async {
-    final doc = await _firestore.collection('users').doc(user.uid).get();
+    final doc = await _firestore.collection('collectors').doc(user.uid).get();
 
     if (doc.exists) {
       return Collector.fromJson({...doc.data()!, 'id': user.uid});
@@ -90,14 +90,14 @@ class AuthService {
       totalHoursToday: 0,
     );
 
-    await _firestore.collection('users').doc(user.uid).set(collector.toJson());
+    await _firestore.collection('collectors').doc(user.uid).set(collector.toJson());
     return collector;
   }
 
   /// Update collector profile in Firestore
   static Future<void> updateCollectorProfile(Collector collector) async {
     await _firestore
-        .collection('users')
+        .collection('collectors')
         .doc(collector.id)
         .update(collector.toJson());
     await _saveUser(collector);
