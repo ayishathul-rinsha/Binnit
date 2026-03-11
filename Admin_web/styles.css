@@ -147,6 +147,86 @@ body {
     box-shadow: 0 2px 8px rgba(33, 66, 30, 0.2);
 }
 
+.login-btn:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* ── Auth Tab Toggle ─────────────────────────── */
+.auth-tabs {
+    display: flex;
+    background: #f3f4f6;
+    border-radius: 12px;
+    padding: 4px;
+    margin-bottom: 24px;
+    gap: 4px;
+}
+
+.auth-tab {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 9px;
+    background: transparent;
+    color: #6b7280;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.22s, color 0.22s, box-shadow 0.22s;
+}
+
+.auth-tab.active {
+    background: white;
+    color: #21421e;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.auth-tab:hover:not(.active) {
+    color: #374151;
+    background: rgba(255, 255, 255, 0.6);
+}
+
+/* Wider box when sign-up is visible */
+.login-box.signup-mode {
+    max-width: 460px;
+}
+
+.auth-form {
+    transition: opacity 0.2s ease;
+}
+
+/* Login error message */
+.login-error {
+    margin-top: 12px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #991b1b;
+    background: #fee2e2;
+    border: 1px solid #fca5a5;
+    display: none;
+    text-align: center;
+    animation: slideUp 0.2s ease;
+}
+
+.login-error:not(:empty) {
+    display: block;
+}
+
+/* Table loading / empty row */
+.loading-row td {
+    text-align: center;
+    color: #9ca3af;
+    font-size: 13px;
+    font-style: italic;
+    padding: 22px 14px !important;
+    background: #fafafa;
+}
+
 /* ======================
    DASHBOARD LAYOUT
    ====================== */

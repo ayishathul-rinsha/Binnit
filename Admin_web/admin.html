@@ -1,16 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 
-<!-- Firebase App (the core SDK) -->
+<!-- Firebase Core -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<!-- Firebase Realtime Database -->
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
+<!-- Authentication -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+
+<!-- Firestore -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
 <script>
     const firebaseConfig = {
-        apiKey: "AIzaSyDkm6ZuTo5w7185ql17uim_wOs1nc0UMV0",
+        apiKey: "AIzaSyD_PerFfPuZM0LXVHnaVwpxA5lbWAMPNcQ",
         authDomain: "emptikko.firebaseapp.com",
-        databaseURL: "https://emptikko-default-rtdb.asia-southeast1.firebasedatabase.app",
         projectId: "emptikko",
         storageBucket: "emptikko.firebasestorage.app",
         messagingSenderId: "588767696668",
@@ -18,8 +21,12 @@
     };
 
     firebase.initializeApp(firebaseConfig);
-    console.log("🔥 Firebase Connected Successfully!");
+    // Global Firestore reference — used by script.js
+    const db = firebase.firestore();
+    console.log("🔥 Firebase (Firestore) Connected Successfully!");
 </script>
+
+
 
 
 <head>
@@ -46,9 +53,17 @@
                     </svg>
                 </div>
                 <h1>Emptico</h1>
-                <p>Admin Dashboard Login</p>
+                <p id="authSubtitle">Admin Dashboard Login</p>
             </div>
-            <form id="loginForm">
+
+            <!-- Tab Toggle -->
+            <div class="auth-tabs">
+                <button class="auth-tab active" id="tabSignIn" onclick="switchTab('signin')">Sign In</button>
+                <button class="auth-tab" id="tabSignUp" onclick="switchTab('signup')">Sign Up</button>
+            </div>
+
+            <!-- ── SIGN IN FORM ── -->
+            <form id="loginForm" class="auth-form">
                 <div class="form-group">
                     <label for="email">Email Address</label>
                     <input type="email" id="email" placeholder="admin@emptico.io" required>
@@ -57,10 +72,35 @@
                     <label for="password">Password</label>
                     <input type="password" id="password" placeholder="Enter your password" required>
                 </div>
-                <button type="submit" class="login-btn">Sign In</button>
+                <button type="submit" class="login-btn" id="loginBtn">Sign In</button>
+                <div id="loginError" class="login-error"></div>
             </form>
+
+            <!-- ── SIGN UP FORM ── -->
+            <form id="signupForm" class="auth-form hidden">
+                <div class="form-group">
+                    <label for="signupName">Full Name</label>
+                    <input type="text" id="signupName" placeholder="Admin Full Name" required>
+                </div>
+                <div class="form-group">
+                    <label for="signupEmail">Email Address</label>
+                    <input type="email" id="signupEmail" placeholder="admin@emptico.io" required>
+                </div>
+                <div class="form-group">
+                    <label for="signupPassword">Password</label>
+                    <input type="password" id="signupPassword" placeholder="Min. 6 characters" required>
+                </div>
+                <div class="form-group">
+                    <label for="signupConfirm">Confirm Password</label>
+                    <input type="password" id="signupConfirm" placeholder="Repeat your password" required>
+                </div>
+                <button type="submit" class="login-btn" id="signupBtn">Create Account</button>
+                <div id="signupError" class="login-error"></div>
+            </form>
+
         </div>
     </div>
+
 
     <!-- ========== DASHBOARD ========== -->
     <div id="dashboard" class="dashboard">
@@ -301,41 +341,8 @@
                                 </tr>
                             </thead>
                             <tbody id="binActivityTable">
-                                <tr>
-                                    <td>BIN-001</td>
-                                    <td>Main Street, Zone A</td>
-                                    <td>
-                                        <div class="fill-bar">
-                                            <div class="fill-inner" style="width:87%;background:#ef4444"></div>
-                                            <span>87%</span>
-                                        </div>
-                                    </td>
-                                    <td><span class="status online">Online</span></td>
-                                    <td>2 mins ago</td>
-                                </tr>
-                                <tr>
-                                    <td>BIN-045</td>
-                                    <td>Park Avenue, Zone B</td>
-                                    <td>
-                                        <div class="fill-bar">
-                                            <div class="fill-inner" style="width:92%;background:#ef4444"></div>
-                                            <span>92%</span>
-                                        </div>
-                                    </td>
-                                    <td><span class="status online">Online</span></td>
-                                    <td>5 mins ago</td>
-                                </tr>
-                                <tr>
-                                    <td>BIN-128</td>
-                                    <td>City Center, Zone C</td>
-                                    <td>
-                                        <div class="fill-bar">
-                                            <div class="fill-inner" style="width:45%;background:#10b981"></div>
-                                            <span>45%</span>
-                                        </div>
-                                    </td>
-                                    <td><span class="status offline">Offline</span></td>
-                                    <td>1 hour ago</td>
+                                <tr class="loading-row">
+                                    <td colspan="5">Loading data from Firebase…</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -427,34 +434,9 @@
                                     <th>Status</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <tr>
-                                    <td>Main Street, Zone A</td>
-                                    <td>Recyclable</td>
-                                    <td>02-03-2026</td>
-                                    <td>John Collector</td>
-                                    <td><span class="status online">Collected</span></td>
-                                </tr>
-                                <tr>
-                                    <td>Park Avenue, Zone B</td>
-                                    <td>General Waste</td>
-                                    <td>02-03-2026</td>
-                                    <td>Mike Driver</td>
-                                    <td><span class="status pending">Pending</span></td>
-                                </tr>
-                                <tr>
-                                    <td>Shopping Mall, Zone C</td>
-                                    <td>Organic</td>
-                                    <td>01-03-2026</td>
-                                    <td>Sarah Collector</td>
-                                    <td><span class="status online">Collected</span></td>
-                                </tr>
-                                <tr>
-                                    <td>School Road, Zone D</td>
-                                    <td>General Waste</td>
-                                    <td>03-03-2026</td>
-                                    <td>Raj Operator</td>
-                                    <td><span class="status offline">Missed</span></td>
+                            <tbody id="overviewNormalBinsTable">
+                                <tr class="loading-row">
+                                    <td colspan="5">Loading data from Firebase…</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -540,96 +522,9 @@
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <tr>
-                                    <td>BIN-001</td>
-                                    <td>Main Street, Zone A</td>
-                                    <td>Recyclable</td>
-                                    <td>
-                                        <div class="fill-bar">
-                                            <div class="fill-inner" style="width:87%;background:#ef4444"></div>
-                                            <span>87%</span>
-                                        </div>
-                                    </td>
-                                    <td><span class="status online">Online</span></td>
-                                    <td><button class="btn btn-primary"><svg viewBox="0 0 24 24">
-                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                                <circle cx="12" cy="12" r="3" />
-                                            </svg>View</button><button class="btn btn-success"><svg viewBox="0 0 24 24">
-                                                <polyline points="20 6 9 17 4 12" />
-                                            </svg>Collect</button></td>
-                                </tr>
-                                <tr>
-                                    <td>BIN-002</td>
-                                    <td>Park Avenue, Zone B</td>
-                                    <td>General Waste</td>
-                                    <td>
-                                        <div class="fill-bar">
-                                            <div class="fill-inner" style="width:34%;background:#10b981"></div>
-                                            <span>34%</span>
-                                        </div>
-                                    </td>
-                                    <td><span class="status online">Online</span></td>
-                                    <td><button class="btn btn-primary"><svg viewBox="0 0 24 24">
-                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                                <circle cx="12" cy="12" r="3" />
-                                            </svg>View</button><button class="btn btn-success"><svg viewBox="0 0 24 24">
-                                                <polyline points="20 6 9 17 4 12" />
-                                            </svg>Collect</button></td>
-                                </tr>
-                                <tr>
-                                    <td>BIN-003</td>
-                                    <td>Shopping Mall, Zone C</td>
-                                    <td>Organic</td>
-                                    <td>
-                                        <div class="fill-bar">
-                                            <div class="fill-inner" style="width:78%;background:#f59e0b"></div>
-                                            <span>78%</span>
-                                        </div>
-                                    </td>
-                                    <td><span class="status online">Online</span></td>
-                                    <td><button class="btn btn-primary"><svg viewBox="0 0 24 24">
-                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                                <circle cx="12" cy="12" r="3" />
-                                            </svg>View</button><button class="btn btn-success"><svg viewBox="0 0 24 24">
-                                                <polyline points="20 6 9 17 4 12" />
-                                            </svg>Collect</button></td>
-                                </tr>
-                                <tr>
-                                    <td>BIN-045</td>
-                                    <td>City Library, Zone D</td>
-                                    <td>E-Waste</td>
-                                    <td>
-                                        <div class="fill-bar">
-                                            <div class="fill-inner" style="width:92%;background:#ef4444"></div>
-                                            <span>92%</span>
-                                        </div>
-                                    </td>
-                                    <td><span class="status offline">Critical</span></td>
-                                    <td><button class="btn btn-primary"><svg viewBox="0 0 24 24">
-                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                                <circle cx="12" cy="12" r="3" />
-                                            </svg>View</button><button class="btn btn-success"><svg viewBox="0 0 24 24">
-                                                <polyline points="20 6 9 17 4 12" />
-                                            </svg>Collect</button></td>
-                                </tr>
-                                <tr>
-                                    <td>BIN-067</td>
-                                    <td>Bus Stand, Zone A</td>
-                                    <td>General Waste</td>
-                                    <td>
-                                        <div class="fill-bar">
-                                            <div class="fill-inner" style="width:55%;background:#f59e0b"></div>
-                                            <span>55%</span>
-                                        </div>
-                                    </td>
-                                    <td><span class="status online">Online</span></td>
-                                    <td><button class="btn btn-primary"><svg viewBox="0 0 24 24">
-                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                                <circle cx="12" cy="12" r="3" />
-                                            </svg>View</button><button class="btn btn-success"><svg viewBox="0 0 24 24">
-                                                <polyline points="20 6 9 17 4 12" />
-                                            </svg>Collect</button></td>
+                            <tbody id="smartBinsTable">
+                                <tr class="loading-row">
+                                    <td colspan="6">Loading data from Firebase…</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -708,58 +603,9 @@
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <tr>
-                                    <td>Main Street, Zone A</td>
-                                    <td>Recyclable</td>
-                                    <td>17-02-2026</td>
-                                    <td>11:00 AM</td>
-                                    <td><span class="status pending">Pending</span></td>
-                                    <td><button class="btn btn-primary"><svg viewBox="0 0 24 24">
-                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                                <circle cx="12" cy="12" r="3" />
-                                            </svg>View</button><button class="btn btn-success"><svg viewBox="0 0 24 24">
-                                                <polyline points="20 6 9 17 4 12" />
-                                            </svg>Collect</button></td>
-                                </tr>
-                                <tr>
-                                    <td>Park Avenue, Zone B</td>
-                                    <td>General Waste</td>
-                                    <td>20-02-2026</td>
-                                    <td>11:30 AM</td>
-                                    <td><span class="status pending">Pending</span></td>
-                                    <td><button class="btn btn-primary"><svg viewBox="0 0 24 24">
-                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                                <circle cx="12" cy="12" r="3" />
-                                            </svg>View</button><button class="btn btn-success"><svg viewBox="0 0 24 24">
-                                                <polyline points="20 6 9 17 4 12" />
-                                            </svg>Collect</button></td>
-                                </tr>
-                                <tr>
-                                    <td>Shopping Mall, Zone C</td>
-                                    <td>Organic</td>
-                                    <td>17-02-2026</td>
-                                    <td>4:00 PM</td>
-                                    <td><span class="status online">Collected</span></td>
-                                    <td><button class="btn btn-primary"><svg viewBox="0 0 24 24">
-                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                                <circle cx="12" cy="12" r="3" />
-                                            </svg>View</button><button class="btn btn-success"><svg viewBox="0 0 24 24">
-                                                <polyline points="20 6 9 17 4 12" />
-                                            </svg>Collect</button></td>
-                                </tr>
-                                <tr>
-                                    <td>School Road, Zone D</td>
-                                    <td>General Waste</td>
-                                    <td>22-02-2026</td>
-                                    <td>9:00 AM</td>
-                                    <td><span class="status pending">Pending</span></td>
-                                    <td><button class="btn btn-primary"><svg viewBox="0 0 24 24">
-                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                                <circle cx="12" cy="12" r="3" />
-                                            </svg>View</button><button class="btn btn-success"><svg viewBox="0 0 24 24">
-                                                <polyline points="20 6 9 17 4 12" />
-                                            </svg>Collect</button></td>
+                            <tbody id="normalBinsTable">
+                                <tr class="loading-row">
+                                    <td colspan="6">Loading data from Firebase…</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -829,75 +675,40 @@
 
                     <div class="card">
                         <div class="card-header-row">
-                            <h3>Collection Log</h3>
+                            <h3>Collection Log — Collectors</h3>
                             <div class="filter-row">
-                                <select class="table-filter" onchange="filterBySelect(this,'collectionsTable',4)">
+                                <select class="table-filter" onchange="filterBySelect(this,'collectionsTableBody',4)">
                                     <option value="">All Status</option>
-                                    <option>Completed</option>
-                                    <option>In Progress</option>
-                                    <option>Scheduled</option>
+                                    <option>Active</option>
+                                    <option>Inactive</option>
                                 </select>
                                 <input type="text" class="table-search" placeholder="Search…"
-                                    oninput="filterTable(this,'collectionsTable')">
+                                    oninput="filterTable(this,'collectionsTableBody')">
                             </div>
                         </div>
-                        <table id="collectionsTable">
+                        <table>
                             <thead>
                                 <tr>
-                                    <th>Collection ID</th>
-                                    <th>Zone</th>
-                                    <th>Collector</th>
-                                    <th>Bins Collected</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Phone</th>
+                                    <th>City</th>
                                     <th>Status</th>
-                                    <th>Date</th>
+                                    <th>Rating</th>
+                                    <th>Pickups</th>
+                                    <th>Vehicle</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <tr>
-                                    <td>COL-101</td>
-                                    <td>Zone A</td>
-                                    <td>John Collector</td>
-                                    <td>12</td>
-                                    <td><span class="status online">Completed</span></td>
-                                    <td>22-02-2026</td>
-                                    <td><button class="btn btn-primary">View</button><button
-                                            class="btn btn-warning">Report</button></td>
-                                </tr>
-                                <tr>
-                                    <td>COL-102</td>
-                                    <td>Zone B</td>
-                                    <td>Mike Driver</td>
-                                    <td>8</td>
-                                    <td><span class="status pending">In Progress</span></td>
-                                    <td>22-02-2026</td>
-                                    <td><button class="btn btn-primary">View</button><button
-                                            class="btn btn-warning">Report</button></td>
-                                </tr>
-                                <tr>
-                                    <td>COL-103</td>
-                                    <td>Zone C</td>
-                                    <td>Sarah Collector</td>
-                                    <td>15</td>
-                                    <td><span class="status online">Completed</span></td>
-                                    <td>21-02-2026</td>
-                                    <td><button class="btn btn-primary">View</button><button
-                                            class="btn btn-warning">Report</button></td>
-                                </tr>
-                                <tr>
-                                    <td>COL-104</td>
-                                    <td>Zone D</td>
-                                    <td>Raj Operator</td>
-                                    <td>0</td>
-                                    <td><span class="status offline">Scheduled</span></td>
-                                    <td>23-02-2026</td>
-                                    <td><button class="btn btn-primary">View</button><button
-                                            class="btn btn-warning">Report</button></td>
+                            <tbody id="collectionsTableBody">
+                                <tr class="loading-row">
+                                    <td colspan="9">Loading collectors from Firebase…</td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
+
 
                 <!-- ── ROUTES PAGE ── -->
                 <div id="routesPage" class="page hidden">
@@ -969,74 +780,9 @@
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <tr>
-                                    <td>RTE-01</td>
-                                    <td>North Loop</td>
-                                    <td>Zone A</td>
-                                    <td>22</td>
-                                    <td>14.2</td>
-                                    <td>John Collector</td>
-                                    <td><span class="status online">Active</span></td>
-                                    <td><button class="btn btn-primary"><svg viewBox="0 0 24 24">
-                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                                <circle cx="12" cy="12" r="3" />
-                                            </svg>View Map</button><button class="btn btn-warning"><svg
-                                                viewBox="0 0 24 24">
-                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                            </svg>Edit</button></td>
-                                </tr>
-                                <tr>
-                                    <td>RTE-02</td>
-                                    <td>Park Circuit</td>
-                                    <td>Zone B</td>
-                                    <td>18</td>
-                                    <td>11.8</td>
-                                    <td>Mike Driver</td>
-                                    <td><span class="status pending">In Progress</span></td>
-                                    <td><button class="btn btn-primary"><svg viewBox="0 0 24 24">
-                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                                <circle cx="12" cy="12" r="3" />
-                                            </svg>View Map</button><button class="btn btn-warning"><svg
-                                                viewBox="0 0 24 24">
-                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                            </svg>Edit</button></td>
-                                </tr>
-                                <tr>
-                                    <td>RTE-03</td>
-                                    <td>Central Run</td>
-                                    <td>Zone C</td>
-                                    <td>30</td>
-                                    <td>19.5</td>
-                                    <td>Sarah Collector</td>
-                                    <td><span class="status online">Active</span></td>
-                                    <td><button class="btn btn-primary"><svg viewBox="0 0 24 24">
-                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                                <circle cx="12" cy="12" r="3" />
-                                            </svg>View Map</button><button class="btn btn-warning"><svg
-                                                viewBox="0 0 24 24">
-                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                            </svg>Edit</button></td>
-                                </tr>
-                                <tr>
-                                    <td>RTE-04</td>
-                                    <td>East Road</td>
-                                    <td>Zone D</td>
-                                    <td>14</td>
-                                    <td>9.3</td>
-                                    <td>Raj Operator</td>
-                                    <td><span class="status offline">Idle</span></td>
-                                    <td><button class="btn btn-primary"><svg viewBox="0 0 24 24">
-                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                                <circle cx="12" cy="12" r="3" />
-                                            </svg>View Map</button><button class="btn btn-warning"><svg
-                                                viewBox="0 0 24 24">
-                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                            </svg>Edit</button></td>
+                            <tbody id="routesTable">
+                                <tr class="loading-row">
+                                    <td colspan="8">Loading data from Firebase…</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -1067,8 +813,8 @@
                                 </svg>
                             </div>
                             <h3>Total Users</h3>
-                            <div class="value">1,847</div>
-                            <div class="change">+89 this week</div>
+                            <div class="value" id="statTotalUsers">—</div>
+                            <div class="change" id="statTotalUsersChange">Loading…</div>
                         </div>
                         <div class="stat-card" style="--accent:#10b981">
                             <div class="stat-icon">
@@ -1077,8 +823,8 @@
                                 </svg>
                             </div>
                             <h3>Active</h3>
-                            <div class="value">1,792</div>
-                            <div class="change">97% active rate</div>
+                            <div class="value" id="statActiveUsers">—</div>
+                            <div class="change" id="statActiveRate">Loading…</div>
                         </div>
                         <div class="stat-card" style="--accent:#3b82f6">
                             <div class="stat-icon">
@@ -1088,7 +834,7 @@
                                 </svg>
                             </div>
                             <h3>Premium Users</h3>
-                            <div class="value">421</div>
+                            <div class="value" id="statPremiumUsers">—</div>
                             <div class="change">Smart Bin subscribers</div>
                         </div>
                         <div class="stat-card" style="--accent:#f59e0b">
@@ -1101,7 +847,7 @@
                                 </svg>
                             </div>
                             <h3>Collectors</h3>
-                            <div class="value">34</div>
+                            <div class="value" id="statCollectors">—</div>
                             <div class="change">Field staff</div>
                         </div>
                     </div>
@@ -1110,15 +856,17 @@
                         <div class="card-header-row">
                             <h3>System Users</h3>
                             <div class="filter-row">
-                                <select class="table-filter" onchange="filterBySelect(this,'usersTable',2)">
+                                <select class="table-filter" onchange="filterBySelect(this,'usersTableBody',2)">
                                     <option value="">All</option>
                                     <option>User</option>
+                                    <option>collector</option>
+                                    <option>admin</option>
                                 </select>
                                 <input type="text" class="table-search" placeholder="Search users…"
-                                    oninput="filterTable(this,'usersTable')">
+                                    oninput="filterTable(this,'usersTableBody')">
                             </div>
                         </div>
-                        <table id="usersTable">
+                        <table>
                             <thead>
                                 <tr>
                                     <th>Name</th>
@@ -1130,38 +878,9 @@
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <tr>
-                                    <td>Priya Sharma</td>
-                                    <td>priya@gmail.com</td>
-                                    <td>User</td>
-                                    <td>★ Premium</td>
-                                    <td><span class="status online">Active</span></td>
-                                    <td>Sep 2025</td>
-                                    <td><button class="btn btn-warning"><svg viewBox="0 0 24 24">
-                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                            </svg>Edit</button><button class="btn btn-danger"><svg viewBox="0 0 24 24">
-                                                <polyline points="3 6 5 6 21 6" />
-                                                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                                                <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                                            </svg>Delete</button></td>
-                                </tr>
-                                <tr>
-                                    <td>Arjun Nair</td>
-                                    <td>arjun@gmail.com</td>
-                                    <td>User</td>
-                                    <td>Free</td>
-                                    <td><span class="status offline">Inactive</span></td>
-                                    <td>Nov 2025</td>
-                                    <td><button class="btn btn-warning"><svg viewBox="0 0 24 24">
-                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                            </svg>Edit</button><button class="btn btn-danger"><svg viewBox="0 0 24 24">
-                                                <polyline points="3 6 5 6 21 6" />
-                                                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                                                <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                                            </svg>Delete</button></td>
+                            <tbody id="usersTableBody">
+                                <tr class="loading-row">
+                                    <td colspan="7">Loading data from Firebase…</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -1259,60 +978,9 @@
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <tr>
-                                    <td>REQ-234</td>
-                                    <td>Main Street, Zone A</td>
-                                    <td><span class="priority high">High</span></td>
-                                    <td>Priya Sharma</td>
-                                    <td><span class="status pending">Pending</span></td>
-                                    <td>22-02-2026</td>
-                                    <td><button class="btn btn-success"><svg viewBox="0 0 24 24">
-                                                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                                                <circle cx="8.5" cy="7" r="4" />
-                                                <polyline points="17 11 19 13 23 9" />
-                                            </svg>Assign</button><button class="btn btn-danger"><svg
-                                                viewBox="0 0 24 24">
-                                                <circle cx="12" cy="12" r="10" />
-                                                <line x1="15" y1="9" x2="9" y2="15" />
-                                                <line x1="9" y1="9" x2="15" y2="15" />
-                                            </svg>Cancel</button></td>
-                                </tr>
-                                <tr>
-                                    <td>REQ-235</td>
-                                    <td>Park Avenue, Zone B</td>
-                                    <td><span class="priority medium">Medium</span></td>
-                                    <td>Arjun Nair</td>
-                                    <td><span class="status pending">Pending</span></td>
-                                    <td>21-02-2026</td>
-                                    <td><button class="btn btn-success"><svg viewBox="0 0 24 24">
-                                                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                                                <circle cx="8.5" cy="7" r="4" />
-                                                <polyline points="17 11 19 13 23 9" />
-                                            </svg>Assign</button><button class="btn btn-danger"><svg
-                                                viewBox="0 0 24 24">
-                                                <circle cx="12" cy="12" r="10" />
-                                                <line x1="15" y1="9" x2="9" y2="15" />
-                                                <line x1="9" y1="9" x2="15" y2="15" />
-                                            </svg>Cancel</button></td>
-                                </tr>
-                                <tr>
-                                    <td>REQ-236</td>
-                                    <td>City Center, Zone C</td>
-                                    <td><span class="priority low">Low</span></td>
-                                    <td>Raj Operator</td>
-                                    <td><span class="status pending">Pending</span></td>
-                                    <td>20-02-2026</td>
-                                    <td><button class="btn btn-success"><svg viewBox="0 0 24 24">
-                                                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                                                <circle cx="8.5" cy="7" r="4" />
-                                                <polyline points="17 11 19 13 23 9" />
-                                            </svg>Assign</button><button class="btn btn-danger"><svg
-                                                viewBox="0 0 24 24">
-                                                <circle cx="12" cy="12" r="10" />
-                                                <line x1="15" y1="9" x2="9" y2="15" />
-                                                <line x1="9" y1="9" x2="15" y2="15" />
-                                            </svg>Cancel</button></td>
+                            <tbody id="requestsTable">
+                                <tr class="loading-row">
+                                    <td colspan="7">Loading data from Firebase…</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -1330,20 +998,9 @@
                                     <th>Status</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <tr>
-                                    <td>REQ-230</td>
-                                    <td>School Road, Zone D</td>
-                                    <td>John Collector</td>
-                                    <td>21-02-2026</td>
-                                    <td><span class="status online">Resolved</span></td>
-                                </tr>
-                                <tr>
-                                    <td>REQ-231</td>
-                                    <td>Bus Stand, Zone A</td>
-                                    <td>Mike Driver</td>
-                                    <td>22-02-2026</td>
-                                    <td><span class="status online">Resolved</span></td>
+                            <tbody id="resolvedRequestsTable">
+                                <tr class="loading-row">
+                                    <td colspan="5">Loading data from Firebase…</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -1454,69 +1111,9 @@
                                     <th>Date</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <tr>
-                                    <td>TXN-1001</td>
-                                    <td>Priya Sharma</td>
-                                    <td>priya@gmail.com</td>
-                                    <td>User Payment</td>
-                                    <td><span class="status online">Success</span></td>
-                                    <td>₹499</td>
-                                    <td>02-03-2026</td>
-                                </tr>
-                                <tr>
-                                    <td>TXN-1002</td>
-                                    <td>Arjun Nair</td>
-                                    <td>arjun@gmail.com</td>
-                                    <td>User Payment</td>
-                                    <td><span class="status pending">Pending</span></td>
-                                    <td>₹199</td>
-                                    <td>02-03-2026</td>
-                                </tr>
-                                <tr>
-                                    <td>TXN-1003</td>
-                                    <td>John Collector</td>
-                                    <td>john@emptico.io</td>
-                                    <td>Collector Payout</td>
-                                    <td><span class="status online">Success</span></td>
-                                    <td>₹3,200</td>
-                                    <td>01-03-2026</td>
-                                </tr>
-                                <tr>
-                                    <td>TXN-1004</td>
-                                    <td>Mike Driver</td>
-                                    <td>mike@emptico.io</td>
-                                    <td>Collector Payout</td>
-                                    <td><span class="status online">Success</span></td>
-                                    <td>₹2,800</td>
-                                    <td>01-03-2026</td>
-                                </tr>
-                                <tr>
-                                    <td>TXN-1005</td>
-                                    <td>Riya Menon</td>
-                                    <td>riya@gmail.com</td>
-                                    <td>User Payment</td>
-                                    <td><span class="status offline">Failed</span></td>
-                                    <td>₹499</td>
-                                    <td>28-02-2026</td>
-                                </tr>
-                                <tr>
-                                    <td>TXN-1006</td>
-                                    <td>Priya Sharma</td>
-                                    <td>priya@gmail.com</td>
-                                    <td>Refund</td>
-                                    <td><span class="status online">Success</span></td>
-                                    <td>₹200</td>
-                                    <td>27-02-2026</td>
-                                </tr>
-                                <tr>
-                                    <td>TXN-1007</td>
-                                    <td>Sarah Admin</td>
-                                    <td>sarah@emptico.io</td>
-                                    <td>Collector Payout</td>
-                                    <td><span class="status online">Success</span></td>
-                                    <td>₹5,000</td>
-                                    <td>25-02-2026</td>
+                            <tbody id="txHistoryTable">
+                                <tr class="loading-row">
+                                    <td colspan="7">Loading data from Firebase…</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -1561,55 +1158,9 @@
                                     <th>Amount/mo</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <tr>
-                                    <td>SUB-401</td>
-                                    <td>Priya Sharma</td>
-                                    <td><span class="badge-label"
-                                            style="border-color:#7c3aed;color:#7c3aed">Premium</span></td>
-                                    <td>Sep 2025</td>
-                                    <td><span class="status online">Active</span></td>
-                                    <td>02-04-2026</td>
-                                    <td>₹499</td>
-                                </tr>
-                                <tr>
-                                    <td>SUB-402</td>
-                                    <td>Arjun Nair</td>
-                                    <td><span class="badge-label">Free</span></td>
-                                    <td>Nov 2025</td>
-                                    <td><span class="status pending">Active</span></td>
-                                    <td>—</td>
-                                    <td>₹0</td>
-                                </tr>
-                                <tr>
-                                    <td>SUB-403</td>
-                                    <td>Riya Menon</td>
-                                    <td><span class="badge-label"
-                                            style="border-color:#7c3aed;color:#7c3aed">Premium</span></td>
-                                    <td>Oct 2025</td>
-                                    <td><span class="status offline">Expired</span></td>
-                                    <td>28-02-2026</td>
-                                    <td>₹499</td>
-                                </tr>
-                                <tr>
-                                    <td>SUB-404</td>
-                                    <td>Kiran Pillai</td>
-                                    <td><span class="badge-label"
-                                            style="border-color:#7c3aed;color:#7c3aed">Premium</span></td>
-                                    <td>Jan 2026</td>
-                                    <td><span class="status online">Active</span></td>
-                                    <td>15-04-2026</td>
-                                    <td>₹499</td>
-                                </tr>
-                                <tr>
-                                    <td>SUB-405</td>
-                                    <td>Meera Das</td>
-                                    <td><span class="badge-label"
-                                            style="border-color:#7c3aed;color:#7c3aed">Premium</span></td>
-                                    <td>Dec 2025</td>
-                                    <td><span class="status offline">Cancelled</span></td>
-                                    <td>—</td>
-                                    <td>₹499</td>
+                            <tbody id="subscriptionsTable">
+                                <tr class="loading-row">
+                                    <td colspan="7">Loading data from Firebase…</td>
                                 </tr>
                             </tbody>
                         </table>
