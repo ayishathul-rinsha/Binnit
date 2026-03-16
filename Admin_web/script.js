@@ -69,14 +69,13 @@ document.getElementById('signupForm').addEventListener('submit', function (e) {
             // Save display name to Firebase Auth profile
             const updateProfile = user.updateProfile({ displayName: name });
 
-            // Save full profile to Firestore  →  users/{uid}  with role='admin'
-            const saveDoc = db.collection('users').doc(user.uid).set({
+            // Save full profile to Firestore  →  admins/{uid}  with role='admin'
+            const saveDoc = db.collection('admins').doc(user.uid).set({
                 uid: user.uid,
                 name: name,
                 email: email,
                 role: 'admin',
                 status: 'Active',
-                is_online: false,
                 created_at: new Date().toISOString()
             });
 
@@ -460,10 +459,9 @@ function initFirebaseData() {
         });
     });
 
-    // ── 3. Collections Log — Collectors (users where role='collector') ─
+    // ── 3. Collections Log — Collectors (from 'collectors' collection) ──
     const collLogTbody = setLoading('collectionsTableBody', 9);
-    db.collection('users')
-        .where('role', 'in', ['collector', 'Collector', 'COLLECTOR'])
+    db.collection('collectors')
         .onSnapshot(snapshot => {
             if (!collLogTbody) return;
             collLogTbody.innerHTML = '';
@@ -482,22 +480,23 @@ function initFirebaseData() {
                 // Vehicle type from nested object
                 const vehicleType = (u.vehicle && u.vehicle.vehicle_type)
                     ? u.vehicle.vehicle_type.replace(/_/g, ' ')
-                    : '-';
+                    : (u.vehicle_type ? u.vehicle_type.replace(/_/g, ' ') : '-');
 
-                // Date — prefer created_at, fall back to joined
-                const dateStr = u.joined || (u.created_at
-                    ? new Date(u.created_at).toLocaleDateString('en-GB')
-                    : '-');
+                // Rating — support numeric or string
+                const rating = u.rating !== undefined && u.rating !== null ? u.rating : '-';
+
+                // Pickups
+                const pickups = u.total_pickups !== undefined ? u.total_pickups : '-';
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>${u.name || '-'}</td>
                     <td>${u.email || '-'}</td>
-                    <td>${u.phone || '-'}</td>
+                    <td>${u.phone || u.phone_number || '-'}</td>
                     <td>${u.city || u.zone || '-'}</td>
                     <td><span class="status ${sc}">${u.status || '-'}</span></td>
-                    <td>${u.rating !== undefined ? u.rating : '-'}</td>
-                    <td>${u.total_pickups !== undefined ? u.total_pickups : '-'}</td>
+                    <td>${rating}</td>
+                    <td>${pickups}</td>
                     <td>${vehicleType}</td>
                     <td>
                         <button class="btn btn-primary"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>View</button>

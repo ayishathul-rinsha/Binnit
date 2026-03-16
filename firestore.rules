@@ -1,0 +1,34 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Admins collection ────────────────────────────────────────
+    // Any signed-in user can create/read/update their OWN admin doc.
+    // This is required at sign-up time (before the doc exists).
+    match /admins/{uid} {
+      allow get:    if request.auth != null;
+      allow list:   if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && request.auth.uid == uid;
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // ── All other dashboard collections ─────────────────────────
+    // Accessible only to users who have a document in /admins.
+    function isAdmin() {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    match /collectors/{docId}         { allow read, write: if isAdmin(); }
+    match /users/{docId}              { allow read, write: if isAdmin(); }
+    match /smart_bins/{docId}         { allow read, write: if isAdmin(); }
+    match /normal_bins/{docId}        { allow read, write: if isAdmin(); }
+    match /routes/{docId}             { allow read, write: if isAdmin(); }
+    match /requests/{docId}           { allow read, write: if isAdmin(); }
+    match /resolved_requests/{docId}  { allow read, write: if isAdmin(); }
+    match /transactions/{docId}       { allow read, write: if isAdmin(); }
+    match /subscriptions/{docId}      { allow read, write: if isAdmin(); }
+    match /adminStats/{docId}         { allow read, write: if isAdmin(); }
+  }
+}
