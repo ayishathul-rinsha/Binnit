@@ -119,7 +119,7 @@ class CollectorProvider extends ChangeNotifier {
       // Save to Firestore
       await FirestoreService.updateCollectorFields(
         _collector!.id,
-        {'bank_details': bankDetails.toJson()},
+        {'bankDetails': bankDetails.toJson()},
       );
 
       _isLoading = false;

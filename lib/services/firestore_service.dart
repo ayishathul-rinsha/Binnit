@@ -26,7 +26,7 @@ class FirestoreService {
   /// Update collector online status
   static Future<void> updateOnlineStatus(String userId, bool isOnline) async {
     await _db.collection('collectors').doc(userId).update({
-      'is_online': isOnline,
+      'isOnline': isOnline,
     });
   }
 
@@ -46,8 +46,8 @@ class FirestoreService {
   static Future<List<PickupRequest>> getPendingPickups() async {
     final snapshot = await _db
         .collection('pickupRequests')
-        .where('status', isEqualTo: PickupStatus.pending.index)
-        .orderBy('created_at', descending: true)
+        .where('status', isEqualTo: PickupStatus.pending.firestoreValue)
+        .orderBy('createdAt', descending: true)
         .get();
 
     return snapshot.docs.map((doc) {
@@ -60,14 +60,14 @@ class FirestoreService {
       String collectorId) async {
     final snapshot = await _db
         .collection('pickupRequests')
-        .where('collector_id', isEqualTo: collectorId)
+        .where('collectorId', isEqualTo: collectorId)
         .where('status', whereIn: [
-          PickupStatus.accepted.index,
-          PickupStatus.onTheWay.index,
-          PickupStatus.reached.index,
-          PickupStatus.pickedUp.index,
+          PickupStatus.accepted.firestoreValue,
+          PickupStatus.onTheWay.firestoreValue,
+          PickupStatus.reached.firestoreValue,
+          PickupStatus.pickedUp.firestoreValue,
         ])
-        .orderBy('created_at', descending: true)
+        .orderBy('createdAt', descending: true)
         .get();
 
     return snapshot.docs.map((doc) {
@@ -84,22 +84,22 @@ class FirestoreService {
   }) async {
     Query query = _db
         .collection('pickupRequests')
-        .where('collector_id', isEqualTo: collectorId)
+        .where('collectorId', isEqualTo: collectorId)
         .where('status', whereIn: [
-      PickupStatus.completed.index,
-      PickupStatus.cancelled.index,
+      PickupStatus.completed.firestoreValue,
+      PickupStatus.cancelled.firestoreValue,
     ]);
 
     if (startDate != null) {
-      query = query.where('created_at',
+      query = query.where('createdAt',
           isGreaterThanOrEqualTo: startDate.toIso8601String());
     }
     if (endDate != null) {
-      query = query.where('created_at',
+      query = query.where('createdAt',
           isLessThanOrEqualTo: endDate.toIso8601String());
     }
 
-    final snapshot = await query.orderBy('created_at', descending: true).get();
+    final snapshot = await query.orderBy('createdAt', descending: true).get();
 
     var results = snapshot.docs.map((doc) {
       final data = doc.data() as Map<String, dynamic>;
@@ -121,8 +121,8 @@ class FirestoreService {
   ) async {
     try {
       await _db.collection('pickupRequests').doc(pickupId).update({
-        'status': PickupStatus.accepted.index,
-        'collector_id': collectorId,
+        'status': PickupStatus.accepted.firestoreValue,
+        'collectorId': collectorId,
       });
       return true;
     } catch (e) {
@@ -134,8 +134,8 @@ class FirestoreService {
   static Future<bool> rejectPickup(String pickupId) async {
     try {
       await _db.collection('pickupRequests').doc(pickupId).update({
-        'status': PickupStatus.pending.index,
-        'collector_id': FieldValue.delete(),
+        'status': PickupStatus.pending.firestoreValue,
+        'collectorId': FieldValue.delete(),
       });
       return true;
     } catch (e) {
@@ -150,12 +150,12 @@ class FirestoreService {
   ) async {
     try {
       final updates = <String, dynamic>{
-        'status': status.index,
+        'status': status.firestoreValue,
       };
 
       // If completed, add completion timestamp
       if (status == PickupStatus.completed) {
-        updates['completed_at'] = DateTime.now().toIso8601String();
+        updates['completedAt'] = DateTime.now().toIso8601String();
       }
 
       await _db.collection('pickupRequests').doc(pickupId).update(updates);
@@ -209,8 +209,8 @@ class FirestoreService {
   static Stream<List<PickupRequest>> pickupRequestsStream() {
     return _db
         .collection('pickupRequests')
-        .where('status', isEqualTo: PickupStatus.pending.index)
-        .orderBy('created_at', descending: true)
+        .where('status', isEqualTo: PickupStatus.pending.firestoreValue)
+        .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {
       return snapshot.docs.map((doc) {
@@ -223,12 +223,12 @@ class FirestoreService {
   static Stream<List<PickupRequest>> activePickupsStream(String collectorId) {
     return _db
         .collection('pickupRequests')
-        .where('collector_id', isEqualTo: collectorId)
+        .where('collectorId', isEqualTo: collectorId)
         .where('status', whereIn: [
-          PickupStatus.accepted.index,
-          PickupStatus.onTheWay.index,
-          PickupStatus.reached.index,
-          PickupStatus.pickedUp.index,
+          PickupStatus.accepted.firestoreValue,
+          PickupStatus.onTheWay.firestoreValue,
+          PickupStatus.reached.firestoreValue,
+          PickupStatus.pickedUp.firestoreValue,
         ])
         .snapshots()
         .map((snapshot) {

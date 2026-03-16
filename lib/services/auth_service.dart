@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/models.dart';
 
-/// Authentication Service — Firebase Custom Token Auth
+/// Authentication Service — Firebase Email/Password Auth
 class AuthService {
   static final FirebaseAuth _auth = FirebaseAuth.instance;
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -13,12 +13,16 @@ class AuthService {
   /// Get current Firebase user
   static User? get currentUser => _auth.currentUser;
 
-  /// Sign in using the Firebase custom token returned by verify-otp
-  static Future<Map<String, dynamic>> loginWithCustomToken(
-    String token,
+  /// Sign in with email and password
+  static Future<Map<String, dynamic>> loginWithEmailPassword(
+    String email,
+    String password,
   ) async {
     try {
-      final UserCredential result = await _auth.signInWithCustomToken(token);
+      final UserCredential result = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
 
       if (result.user == null) {
         return {'success': false, 'message': 'Authentication failed'};
@@ -81,9 +85,9 @@ class AuthService {
     // Create new profile if doesn't exist
     final collector = Collector(
       id: user.uid,
-      name: user.displayName ?? user.phoneNumber ?? 'User',
+      name: user.displayName ?? 'User',
       email: user.email ?? '',
-      phone: user.phoneNumber ?? '',
+      phone: '',
       isOnline: false,
       rating: 0.0,
       totalPickups: 0,
@@ -112,14 +116,18 @@ class AuthService {
   /// Get human-readable error message from Firebase error codes
   static String _getAuthErrorMessage(String code) {
     switch (code) {
-      case 'invalid-custom-token':
-        return 'Invalid authentication token. Please try again.';
-      case 'custom-token-mismatch':
-        return 'Token mismatch. Please try again.';
+      case 'user-not-found':
+        return 'No account found with this email.';
+      case 'wrong-password':
+        return 'Incorrect password.';
+      case 'invalid-email':
+        return 'Invalid email address.';
       case 'user-disabled':
-        return 'This account has been disabled';
+        return 'This account has been disabled.';
       case 'too-many-requests':
-        return 'Too many attempts. Please try again later';
+        return 'Too many attempts. Please try again later.';
+      case 'invalid-credential':
+        return 'Invalid email or password.';
       default:
         return 'Authentication error: $code';
     }
