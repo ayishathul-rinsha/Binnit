@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'package:google_sign_in/google_sign_in.dart';
 import '../models/models.dart';
 import '../services/auth_service.dart';
@@ -56,8 +56,14 @@ class AuthProvider extends ChangeNotifier {
         password: password,
       );
 
+      // Create collector profile
+      await AuthService.getOrCreateCollectorProfile(userCredential.user!);
+
       // Send email verification
       await userCredential.user?.sendEmailVerification();
+      
+      // Sign out since they need to verify
+      await FirebaseAuth.instance.signOut();
 
       _isLoading = false;
       notifyListeners();
@@ -103,18 +109,12 @@ class AuthProvider extends ChangeNotifier {
         return {'success': false, 'message': _error};
       }
 
-      // Fetch collector profile from Firestore
-      final doc = await FirebaseFirestore.instance
-          .collection('collectors')
-          .doc(user.uid)
-          .get();
-
-      if (doc.exists) {
-        _collector = Collector.fromJson({...doc.data()!, 'id': user.uid});
-        _isLoggedIn = true;
-      } else {
-        _isLoggedIn = true;
-      }
+      // Fetch or create collector profile from Firestore
+      final collector = await AuthService.getOrCreateCollectorProfile(user);
+      
+      // Update provider state
+      _collector = collector;
+      _isLoggedIn = true;
 
       _isLoading = false;
       notifyListeners();
