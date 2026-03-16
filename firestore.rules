@@ -39,10 +39,12 @@ service cloud.firestore {
       allow delete: if isAuthenticated() && isAdmin();
     }
 
-    // Admins collection
+    // Admins collection (separate from users — stores admin profiles)
     match /admins/{adminId} {
-      allow read: if isAuthenticated() && isOwner(adminId);
-      allow write: if false; // Admins are managed manually or via Admin SDK
+      // Any admin can read admin profiles (for listing/management)
+      allow read: if isAuthenticated() && isAdmin();
+      // Writes managed exclusively by backend (Admin SDK only)
+      allow write: if false;
     }
 
     // Pickup requests

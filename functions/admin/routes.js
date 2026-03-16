@@ -1,6 +1,13 @@
 /**
  * Admin Routes — /api/admin
  *
+ * POST /admins                   — Create a new admin (super-admin only)
+ * GET  /admins                   — List all admins
+ * GET  /admins/me                — Get own admin profile
+ * GET  /admins/:id               — Get admin profile by ID
+ * PUT  /admins/:id               — Update admin profile
+ * DELETE /admins/:id             — Delete/deactivate admin
+ *
  * GET  /dashboard               — Dashboard stats
  * GET  /bins                    — Bin activity list
  * GET  /users                   — User management
@@ -31,6 +38,264 @@ async function requireAdmin(req) {
 
     return decoded;
 }
+
+// =============================================================
+//  ADMIN PROFILE ENDPOINTS
+// =============================================================
+
+/**
+ * POST /api/admin/admins
+ * Body: { name, email, password, phone?, role?, permissions? }
+ * Response: { adminId, name, email }
+ *
+ * Creates a new admin. Requires super-admin (isSuperAdmin: true).
+ */
+router.post("/admins", async (req, res) => {
+    try {
+        const decoded = await requireAdmin(req);
+
+        // Only super-admins can create other admins
+        const callerDoc = await admin.firestore().collection("admins").doc(decoded.uid).get();
+        if (!callerDoc.data()?.isSuperAdmin) {
+            return res.status(403).json({ success: false, error: "Only super-admins can create other admins" });
+        }
+
+        const { name, email, password, phone, role, permissions } = req.body;
+        if (!name || !email || !password) {
+            return res.status(400).json({ success: false, error: "name, email, and password are required" });
+        }
+
+        // Create Firebase Auth user
+        const userRecord = await admin.auth().createUser({
+            email,
+            password,
+            displayName: name,
+            phoneNumber: phone || undefined,
+        });
+
+        // Store full admin profile in admins collection
+        const adminData = {
+            name,
+            email,
+            phone: phone || "",
+            role: role || "admin",
+            isSuperAdmin: false,
+            permissions: permissions || ["dashboard", "users", "pickups", "collectors"],
+            isActive: true,
+            createdBy: decoded.uid,
+            createdAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp(),
+        };
+
+        await admin.firestore().collection("admins").doc(userRecord.uid).set(adminData);
+
+        res.status(201).json({
+            success: true,
+            adminId: userRecord.uid,
+            name,
+            email,
+        });
+    } catch (error) {
+        console.error("Create admin error:", error);
+        const statusCode = error.message.startsWith("Unauthorized") ? 401
+            : error.message.startsWith("Forbidden") ? 403
+            : error.code === "auth/email-already-exists" ? 409 : 500;
+        res.status(statusCode).json({ success: false, error: error.message || "Failed to create admin" });
+    }
+});
+
+/**
+ * GET /api/admin/admins
+ * Response: { admins: [...] }
+ *
+ * Lists all admin profiles.
+ */
+router.get("/admins", async (req, res) => {
+    try {
+        await requireAdmin(req);
+
+        const snapshot = await admin.firestore()
+            .collection("admins")
+            .orderBy("createdAt", "desc")
+            .get();
+
+        const admins = [];
+        snapshot.forEach((doc) => {
+            const d = doc.data();
+            admins.push({
+                adminId: doc.id,
+                name: d.name,
+                email: d.email,
+                phone: d.phone || "",
+                role: d.role || "admin",
+                isSuperAdmin: d.isSuperAdmin || false,
+                permissions: d.permissions || [],
+                isActive: d.isActive !== false,
+                createdAt: d.createdAt,
+                updatedAt: d.updatedAt,
+            });
+        });
+
+        res.json({ success: true, admins, count: admins.length });
+    } catch (error) {
+        console.error("List admins error:", error);
+        const statusCode = error.message.startsWith("Unauthorized") ? 401 : 403;
+        res.status(statusCode).json({ success: false, error: error.message || "Failed to list admins" });
+    }
+});
+
+/**
+ * GET /api/admin/admins/me
+ * Response: { admin profile }
+ */
+router.get("/admins/me", async (req, res) => {
+    try {
+        const decoded = await requireAdmin(req);
+        const doc = await admin.firestore().collection("admins").doc(decoded.uid).get();
+        const d = doc.data();
+
+        res.json({
+            success: true,
+            admin: {
+                adminId: doc.id,
+                name: d.name,
+                email: d.email,
+                phone: d.phone || "",
+                role: d.role || "admin",
+                isSuperAdmin: d.isSuperAdmin || false,
+                permissions: d.permissions || [],
+                isActive: d.isActive !== false,
+                createdAt: d.createdAt,
+                updatedAt: d.updatedAt,
+            },
+        });
+    } catch (error) {
+        console.error("Get own admin profile error:", error);
+        const statusCode = error.message.startsWith("Unauthorized") ? 401 : 403;
+        res.status(statusCode).json({ success: false, error: error.message });
+    }
+});
+
+/**
+ * GET /api/admin/admins/:id
+ * Response: { admin profile }
+ */
+router.get("/admins/:id", async (req, res) => {
+    try {
+        await requireAdmin(req);
+        const doc = await admin.firestore().collection("admins").doc(req.params.id).get();
+
+        if (!doc.exists) {
+            return res.status(404).json({ success: false, error: "Admin not found" });
+        }
+
+        const d = doc.data();
+        res.json({
+            success: true,
+            admin: {
+                adminId: doc.id,
+                name: d.name,
+                email: d.email,
+                phone: d.phone || "",
+                role: d.role || "admin",
+                isSuperAdmin: d.isSuperAdmin || false,
+                permissions: d.permissions || [],
+                isActive: d.isActive !== false,
+                createdAt: d.createdAt,
+                updatedAt: d.updatedAt,
+            },
+        });
+    } catch (error) {
+        console.error("Get admin profile error:", error);
+        const statusCode = error.message.startsWith("Unauthorized") ? 401 : 403;
+        res.status(statusCode).json({ success: false, error: error.message });
+    }
+});
+
+/**
+ * PUT /api/admin/admins/:id
+ * Body: { name?, phone?, role?, permissions?, isActive? }
+ * Response: { success }
+ */
+router.put("/admins/:id", async (req, res) => {
+    try {
+        const decoded = await requireAdmin(req);
+        const targetId = req.params.id;
+
+        // Can only update own profile unless super-admin
+        const callerDoc = await admin.firestore().collection("admins").doc(decoded.uid).get();
+        const isSuperAdmin = callerDoc.data()?.isSuperAdmin || false;
+
+        if (decoded.uid !== targetId && !isSuperAdmin) {
+            return res.status(403).json({ success: false, error: "You can only update your own profile" });
+        }
+
+        const targetDoc = await admin.firestore().collection("admins").doc(targetId).get();
+        if (!targetDoc.exists) {
+            return res.status(404).json({ success: false, error: "Admin not found" });
+        }
+
+        const { name, phone, role, permissions, isActive } = req.body;
+        const updates = { updatedAt: FieldValue.serverTimestamp() };
+
+        if (name !== undefined) updates.name = name;
+        if (phone !== undefined) updates.phone = phone;
+        if (isSuperAdmin && role !== undefined) updates.role = role;
+        if (isSuperAdmin && permissions !== undefined) updates.permissions = permissions;
+        if (isSuperAdmin && isActive !== undefined) updates.isActive = isActive;
+
+        await admin.firestore().collection("admins").doc(targetId).update(updates);
+
+        // Sync name to Firebase Auth if changed
+        if (name) {
+            await admin.auth().updateUser(targetId, { displayName: name }).catch(() => {});
+        }
+
+        res.json({ success: true, message: "Admin profile updated" });
+    } catch (error) {
+        console.error("Update admin profile error:", error);
+        const statusCode = error.message.startsWith("Unauthorized") ? 401 : 403;
+        res.status(statusCode).json({ success: false, error: error.message });
+    }
+});
+
+/**
+ * DELETE /api/admin/admins/:id
+ * Deactivates (soft delete) an admin. Super-admin only.
+ */
+router.delete("/admins/:id", async (req, res) => {
+    try {
+        const decoded = await requireAdmin(req);
+
+        const callerDoc = await admin.firestore().collection("admins").doc(decoded.uid).get();
+        if (!callerDoc.data()?.isSuperAdmin) {
+            return res.status(403).json({ success: false, error: "Only super-admins can delete admins" });
+        }
+
+        const targetId = req.params.id;
+        if (targetId === decoded.uid) {
+            return res.status(400).json({ success: false, error: "You cannot delete your own account" });
+        }
+
+        const targetDoc = await admin.firestore().collection("admins").doc(targetId).get();
+        if (!targetDoc.exists) {
+            return res.status(404).json({ success: false, error: "Admin not found" });
+        }
+
+        // Soft-delete: mark as inactive and disable Firebase Auth account
+        await admin.firestore().collection("admins").doc(targetId).update({
+            isActive: false,
+            updatedAt: FieldValue.serverTimestamp(),
+        });
+        await admin.auth().updateUser(targetId, { disabled: true }).catch(() => {});
+
+        res.json({ success: true, message: "Admin deactivated" });
+    } catch (error) {
+        console.error("Delete admin error:", error);
+        const statusCode = error.message.startsWith("Unauthorized") ? 401 : 403;
+        res.status(statusCode).json({ success: false, error: error.message });
+    }
+});
 
 /**
  * GET /api/admin/dashboard
