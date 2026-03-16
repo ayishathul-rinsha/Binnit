@@ -15,18 +15,18 @@ class VehicleDetails {
   factory VehicleDetails.fromJson(Map<String, dynamic> json) {
     return VehicleDetails(
       id: json['id'] ?? '',
-      vehicleType: json['vehicle_type'] ?? '',
-      vehicleNumber: json['vehicle_number'] ?? '',
-      registrationDocUrl: json['registration_doc_url'] ?? '',
+      vehicleType: json['vehicleType'] ?? '',
+      vehicleNumber: json['vehicleNumber'] ?? '',
+      registrationDocUrl: json['registrationDocUrl'] ?? '',
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'vehicle_type': vehicleType,
-      'vehicle_number': vehicleNumber,
-      'registration_doc_url': registrationDocUrl,
+      'vehicleType': vehicleType,
+      'vehicleNumber': vehicleNumber,
+      'registrationDocUrl': registrationDocUrl,
     };
   }
 }
@@ -47,19 +47,19 @@ class BankDetails {
 
   factory BankDetails.fromJson(Map<String, dynamic> json) {
     return BankDetails(
-      accountNumber: json['account_number'] ?? '',
-      ifscCode: json['ifsc_code'] ?? '',
-      bankName: json['bank_name'] ?? '',
-      accountHolderName: json['account_holder_name'] ?? '',
+      accountNumber: json['accountNumber'] ?? '',
+      ifscCode: json['ifscCode'] ?? '',
+      bankName: json['bankName'] ?? '',
+      accountHolderName: json['accountHolderName'] ?? '',
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'account_number': accountNumber,
-      'ifsc_code': ifscCode,
-      'bank_name': bankName,
-      'account_holder_name': accountHolderName,
+      'accountNumber': accountNumber,
+      'ifscCode': ifscCode,
+      'bankName': bankName,
+      'accountHolderName': accountHolderName,
     };
   }
 }
@@ -100,18 +100,18 @@ class Collector {
       name: json['name'] ?? '',
       email: json['email'] ?? '',
       phone: json['phone'] ?? '',
-      photoUrl: json['photo_url'] ?? '',
+      photoUrl: json['photoUrl'] ?? '',
       rating: (json['rating'] ?? 0.0).toDouble(),
-      totalPickups: json['total_pickups'] ?? 0,
-      totalHoursToday: (json['total_hours_today'] ?? 0.0).toDouble(),
-      isOnline: json['is_online'] ?? false,
+      totalPickups: json['totalPickups'] ?? 0,
+      totalHoursToday: (json['totalHoursToday'] ?? 0.0).toDouble(),
+      isOnline: json['isOnline'] ?? false,
       vehicle: json['vehicle'] != null
           ? VehicleDetails.fromJson(json['vehicle'])
           : null,
-      bankDetails: json['bank_details'] != null
-          ? BankDetails.fromJson(json['bank_details'])
+      bankDetails: json['bankDetails'] != null
+          ? BankDetails.fromJson(json['bankDetails'])
           : null,
-      idProofUrl: json['id_proof_url'] ?? '',
+      idProofUrl: json['idProofUrl'] ?? '',
     );
   }
 
@@ -121,14 +121,14 @@ class Collector {
       'name': name,
       'email': email,
       'phone': phone,
-      'photo_url': photoUrl,
+      'photoUrl': photoUrl,
       'rating': rating,
-      'total_pickups': totalPickups,
-      'total_hours_today': totalHoursToday,
-      'is_online': isOnline,
+      'totalPickups': totalPickups,
+      'totalHoursToday': totalHoursToday,
+      'isOnline': isOnline,
       'vehicle': vehicle?.toJson(),
-      'bank_details': bankDetails?.toJson(),
-      'id_proof_url': idProofUrl,
+      'bankDetails': bankDetails?.toJson(),
+      'idProofUrl': idProofUrl,
     };
   }
 
