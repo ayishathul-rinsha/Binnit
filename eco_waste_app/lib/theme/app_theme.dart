@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  // Primary Colors - Green Theme (matching the app design)
-  static const Color primaryGreen = Color(0xFF4A6741);
-  static const Color darkGreen = Color(0xFF3D5635);
-  static const Color lightGreen = Color(0xFF6B8E5F);
-  static const Color accentGreen = Color(0xFF8CB369);
+  // Primary Colors - Olive Green Theme
+  static const Color primaryGreen = Color(0xFF6B7F3B);
+  static const Color darkGreen = Color(0xFF556B2F);
+  static const Color lightGreen = Color(0xFF8FA35A);
+  static const Color accentGreen = Color(0xFFA3B86C);
   
   // Background Colors
   static const Color backgroundColor = Color(0xFFF5F5F0);
@@ -32,7 +32,7 @@ class AppTheme {
   );
   
   static const LinearGradient cardGradient = LinearGradient(
-    colors: [Color(0xFF4A6741), Color(0xFF3D5635)],
+    colors: [Color(0xFF6B7F3B), Color(0xFF556B2F)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );

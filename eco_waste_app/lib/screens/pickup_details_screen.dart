@@ -5,7 +5,18 @@ import '../main.dart' show languageService;
 import 'payment_screen.dart';
 
 class PickupDetailsScreen extends StatefulWidget {
-  const PickupDetailsScreen({super.key});
+  final String addressLabel;
+  final String address;
+  final DateTime pickupDate;
+  final String timeSlot;
+
+  const PickupDetailsScreen({
+    super.key,
+    required this.addressLabel,
+    required this.address,
+    required this.pickupDate,
+    required this.timeSlot,
+  });
 
   @override
   State<PickupDetailsScreen> createState() => _PickupDetailsScreenState();
@@ -137,6 +148,27 @@ class _PickupDetailsScreenState extends State<PickupDetailsScreen>
     }
   }
 
+  String _formatDate(DateTime d) {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final now = DateTime.now();
+    final tomorrow = DateTime(now.year, now.month, now.day + 1);
+    final selDay = DateTime(d.year, d.month, d.day);
+
+    String label;
+    if (selDay == DateTime(now.year, now.month, now.day)) {
+      label = 'Today';
+    } else if (selDay == DateTime(tomorrow.year, tomorrow.month, tomorrow.day)) {
+      label = 'Tomorrow';
+    } else {
+      label = days[d.weekday - 1];
+    }
+    return '$label, ${d.day} ${months[d.month - 1]}';
+  }
+
   void _setQuickWeight(double w) {
     setState(() {
       _weight = w;
@@ -255,8 +287,8 @@ class _PickupDetailsScreenState extends State<PickupDetailsScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Tomorrow, Feb 15',
+                  Text(
+                    _formatDate(widget.pickupDate),
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 16,
@@ -268,16 +300,16 @@ class _PickupDetailsScreenState extends State<PickupDetailsScreen>
                     children: [
                       const Icon(Icons.schedule_rounded, size: 14, color: Colors.white70),
                       const SizedBox(width: 4),
-                      const Text(
-                        '9:00 - 11:00 AM',
-                        style: TextStyle(color: Colors.white70, fontSize: 13),
+                      Text(
+                        widget.timeSlot,
+                        style: const TextStyle(color: Colors.white70, fontSize: 13),
                       ),
                       const SizedBox(width: 12),
                       const Icon(Icons.location_on_rounded, size: 14, color: Colors.white70),
                       const SizedBox(width: 4),
-                      const Text(
-                        'Home',
-                        style: TextStyle(color: Colors.white70, fontSize: 13),
+                      Text(
+                        widget.addressLabel,
+                        style: const TextStyle(color: Colors.white70, fontSize: 13),
                       ),
                     ],
                   ),
@@ -819,6 +851,12 @@ class _PickupDetailsScreenState extends State<PickupDetailsScreen>
                                 .map((i) => _wasteTypes[i]['name'] as String)
                                 .toList(),
                             weight: _weight,
+                            addressLabel: widget.addressLabel,
+                            address: widget.address,
+                            pickupDate: widget.pickupDate,
+                            timeSlot: widget.timeSlot,
+                            notes: _notes,
+                            needBags: _needsBags,
                           ),
                         ));
                   },

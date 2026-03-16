@@ -767,7 +767,7 @@ class _HomeDashboard extends StatelessWidget {
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () => Navigator.push(context,
-                            MaterialPageRoute(builder: (_) => const PickupDetailsScreen())),
+                            MaterialPageRoute(builder: (_) => const SchedulePickupScreen())),
                         icon: const Icon(Icons.info_outline_rounded, size: 18),
                         label: Text(languageService.t('details')),
                         style: OutlinedButton.styleFrom(

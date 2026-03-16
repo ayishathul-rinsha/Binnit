@@ -1,18 +1,31 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../main.dart' show languageService;
+import '../services/firestore_service.dart';
 import 'pickup_tracking_screen.dart';
 
 class PaymentScreen extends StatefulWidget {
   final double amount;
   final List<String> wasteTypes;
   final double weight;
+  final String addressLabel;
+  final String address;
+  final DateTime pickupDate;
+  final String timeSlot;
+  final String notes;
+  final bool needBags;
 
   const PaymentScreen({
     super.key,
     required this.amount,
     required this.wasteTypes,
     required this.weight,
+    required this.addressLabel,
+    required this.address,
+    required this.pickupDate,
+    required this.timeSlot,
+    this.notes = '',
+    this.needBags = false,
   });
 
   @override
@@ -79,14 +92,84 @@ class _PaymentScreenState extends State<PaymentScreen>
     super.dispose();
   }
 
+  final FirestoreService _firestoreService = FirestoreService();
+  String? _pickupId;
+  String? _transactionId;
+
+  String _formatDate(DateTime d) {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final now = DateTime.now();
+    final tomorrow = DateTime(now.year, now.month, now.day + 1);
+    final selDay = DateTime(d.year, d.month, d.day);
+
+    String label;
+    if (selDay == DateTime(now.year, now.month, now.day)) {
+      label = 'Today';
+    } else if (selDay == DateTime(tomorrow.year, tomorrow.month, tomorrow.day)) {
+      label = 'Tomorrow';
+    } else {
+      label = days[d.weekday - 1];
+    }
+    return '$label, ${d.day} ${months[d.month - 1]}';
+  }
+
   Future<void> _processPayment() async {
     setState(() => _isProcessing = true);
-    await Future.delayed(const Duration(seconds: 2));
-    if (mounted) {
-      setState(() {
-        _isProcessing = false;
-        _isSuccess = true;
-      });
+    try {
+      // 1. Save pickup to Firestore
+      final pickupId = await _firestoreService.schedulePickup(
+        address: widget.address,
+        addressLabel: widget.addressLabel,
+        date: widget.pickupDate,
+        timeSlot: widget.timeSlot,
+        weight: widget.weight,
+        wasteTypes: widget.wasteTypes,
+        amount: widget.amount,
+        notes: widget.notes,
+        needBags: widget.needBags,
+      );
+
+      // 2. Record payment transaction
+      final paymentMethod = _paymentMethods[_selectedPayment]['name'] as String;
+      final transactionId = await _firestoreService.recordTransaction(
+        pickupId: pickupId,
+        amount: widget.amount,
+        paymentMethod: paymentMethod,
+        type: 'payment',
+      );
+
+      // 3. Update payment status on the pickup
+      await _firestoreService.updatePaymentStatus(
+        pickupId: pickupId,
+        paymentStatus: 'PAID',
+        paymentMethod: paymentMethod,
+        transactionId: transactionId,
+      );
+
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+          _isSuccess = true;
+          _pickupId = pickupId;
+          _transactionId = transactionId;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isProcessing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Payment failed: ${e.toString()}'),
+            backgroundColor: AppTheme.errorColor,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
     }
   }
 
@@ -301,9 +384,9 @@ class _PaymentScreenState extends State<PaymentScreen>
               ),
             ),
             const SizedBox(height: 14),
-            _summaryRow(Icons.calendar_today_rounded, 'Pickup Date', 'Tomorrow, Feb 15'),
-            _summaryRow(Icons.schedule_rounded, 'Time Slot', '9:00 - 11:00 AM'),
-            _summaryRow(Icons.location_on_rounded, 'Address', 'Home - Koramangala'),
+            _summaryRow(Icons.calendar_today_rounded, 'Pickup Date', _formatDate(widget.pickupDate)),
+            _summaryRow(Icons.schedule_rounded, 'Time Slot', widget.timeSlot),
+            _summaryRow(Icons.location_on_rounded, 'Address', '${widget.addressLabel} - ${widget.address}'),
             _summaryRow(Icons.scale_rounded, 'Weight', '${widget.weight.toStringAsFixed(1)} Kg'),
             _summaryRow(Icons.category_rounded, 'Waste Types', widget.wasteTypes.join(', ')),
             const SizedBox(height: 10),
@@ -661,7 +744,7 @@ class _PaymentScreenState extends State<PaymentScreen>
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Your pickup has been confirmed for\nTomorrow, 9:00 - 11:00 AM',
+                  'Your pickup has been confirmed for\n${_formatDate(widget.pickupDate)}, ${widget.timeSlot}',
                   textAlign: TextAlign.center,
                   style: AppTheme.bodyMedium.copyWith(
                     color: AppTheme.textSecondary,
@@ -686,7 +769,7 @@ class _PaymentScreenState extends State<PaymentScreen>
                   child: Column(
                     children: [
                       _successRow('Amount Paid', '₹${widget.amount.toStringAsFixed(0)}'),
-                      _successRow('Transaction ID', '#ECO${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}'),
+                      _successRow('Pickup ID', '#${_pickupId?.substring(0, 8).toUpperCase() ?? 'N/A'}'),
                       _successRow('Payment Method', _paymentMethods[_selectedPayment]['name']),
                       _successRow('Eco Points Earned', '+${(widget.amount * 2).toInt()}'),
                     ],

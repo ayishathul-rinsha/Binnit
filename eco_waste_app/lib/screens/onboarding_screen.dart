@@ -107,31 +107,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     return Scaffold(
       body: Stack(
         children: [
-          // Animated gradient background
-          AnimatedBuilder(
-            animation: _bgAnimController,
-            builder: (context, child) {
-              return Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment(
-                      math.cos(_bgAnimController.value * 2 * math.pi) * 0.5,
-                      math.sin(_bgAnimController.value * 2 * math.pi) * 0.5,
-                    ),
-                    end: Alignment(
-                      -math.cos(_bgAnimController.value * 2 * math.pi) * 0.5,
-                      -math.sin(_bgAnimController.value * 2 * math.pi) * 0.5,
-                    ),
-                    colors: const [
-                      Color(0xFF1B4332),
-                      Color(0xFF2D6A4F),
-                      Color(0xFF40916C),
-                      Color(0xFF2D6A4F),
-                    ],
-                  ),
-                ),
-              );
-            },
+          // Solid olive green background
+          Container(
+            color: const Color(0xFF3B4A2B),
           ),
 
           // Floating circles decoration
@@ -221,19 +199,19 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                           icon: Icons.eco_rounded,
                           titleKey: 'onboarding_title_1',
                           descKey: 'onboarding_desc_1',
-                          color: const Color(0xFF52B788),
+                          color: const Color(0xFF8FA35A),
                         ),
                         _buildFeaturePage(
                           icon: Icons.sensors_rounded,
                           titleKey: 'onboarding_title_2',
                           descKey: 'onboarding_desc_2',
-                          color: const Color(0xFF74C69D),
+                          color: const Color(0xFFA3B86C),
                         ),
                         _buildFeaturePage(
                           icon: Icons.storefront_rounded,
                           titleKey: 'onboarding_title_3',
                           descKey: 'onboarding_desc_3',
-                          color: const Color(0xFF95D5B2),
+                          color: const Color(0xFFA3B86C),
                         ),
                         _buildLanguageSelectionPage(),
                       ],
@@ -274,7 +252,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                             onPressed: _nextPage,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white,
-                              foregroundColor: const Color(0xFF1B4332),
+                              foregroundColor: const Color(0xFF4A5A28),
                               elevation: 0,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(18),
@@ -623,7 +601,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                   ? const Icon(
                       Icons.check_rounded,
                       size: 16,
-                      color: Color(0xFF1B4332),
+                      color: Color(0xFF4A5A28),
                     )
                   : null,
             ),

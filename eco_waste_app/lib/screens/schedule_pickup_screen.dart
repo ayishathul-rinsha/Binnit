@@ -715,8 +715,16 @@ class _SchedulePickupScreenState extends State<SchedulePickupScreen>
           height: 56,
           child: ElevatedButton(
             onPressed: () {
+              final selectedAddr = _addresses.firstWhere(
+                (a) => a['label'] == _selectedAddress,
+              );
               Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const PickupDetailsScreen()));
+                  MaterialPageRoute(builder: (_) => PickupDetailsScreen(
+                    addressLabel: selectedAddr['label'] as String,
+                    address: selectedAddr['address'] as String,
+                    pickupDate: _selectedDate,
+                    timeSlot: _formatTime(_selectedTime),
+                  )));
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primaryGreen,

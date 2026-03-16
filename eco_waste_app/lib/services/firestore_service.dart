@@ -31,21 +31,21 @@ class FirestoreService {
   }) async {
     if (_uid == null) throw Exception('User not logged in');
 
-    final docRef = await _db.collection('pickups').add({
+    final docRef = await _db.collection('pickupRequests').add({
       'userId': _uid,
       'address': address,
       'addressLabel': addressLabel,
       'date': Timestamp.fromDate(date),
-      'timeSlot': timeSlot,
-      'weight': weight,
+      'time': timeSlot,
+      'weightKg': weight,
       'wasteTypes': wasteTypes,
       'amount': amount,
       'notes': notes ?? '',
       'fragileItems': fragileItems,
       'needBags': needBags,
       'heavyItems': heavyItems,
-      'status': 'scheduled', // scheduled, confirmed, driver_assigned, on_the_way, arriving, completed, cancelled
-      'paymentStatus': 'pending', // pending, paid, refunded
+      'status': 'PENDING', // PENDING, CONFIRMED, DRIVER_ASSIGNED, ON_THE_WAY, ARRIVING, COMPLETED, CANCELLED
+      'paymentStatus': 'PENDING', // PENDING, PAID, REFUNDED
       'driverId': null,
       'driverName': null,
       'createdAt': FieldValue.serverTimestamp(),
@@ -60,7 +60,7 @@ class FirestoreService {
     if (_uid == null) throw Exception('User not logged in');
 
     Query query = _db
-        .collection('pickups')
+        .collection('pickupRequests')
         .where('userId', isEqualTo: _uid)
         .orderBy('createdAt', descending: true);
 
@@ -76,9 +76,9 @@ class FirestoreService {
     if (_uid == null) throw Exception('User not logged in');
 
     return _db
-        .collection('pickups')
+        .collection('pickupRequests')
         .where('userId', isEqualTo: _uid)
-        .where('status', whereIn: ['scheduled', 'confirmed', 'driver_assigned', 'on_the_way'])
+        .where('status', whereIn: ['PENDING', 'CONFIRMED', 'DRIVER_ASSIGNED', 'ON_THE_WAY'])
         .orderBy('date')
         .limit(5)
         .snapshots();
@@ -86,12 +86,12 @@ class FirestoreService {
 
   /// Get a single pickup by ID
   Stream<DocumentSnapshot> getPickup(String pickupId) {
-    return _db.collection('pickups').doc(pickupId).snapshots();
+    return _db.collection('pickupRequests').doc(pickupId).snapshots();
   }
 
   /// Update pickup status
   Future<void> updatePickupStatus(String pickupId, String status) async {
-    await _db.collection('pickups').doc(pickupId).update({
+    await _db.collection('pickupRequests').doc(pickupId).update({
       'status': status,
       'updatedAt': FieldValue.serverTimestamp(),
     });
@@ -104,7 +104,7 @@ class FirestoreService {
     String? paymentMethod,
     String? transactionId,
   }) async {
-    await _db.collection('pickups').doc(pickupId).update({
+    await _db.collection('pickupRequests').doc(pickupId).update({
       'paymentStatus': paymentStatus,
       'paymentMethod': paymentMethod,
       'transactionId': transactionId,
@@ -115,8 +115,8 @@ class FirestoreService {
 
   /// Cancel a pickup
   Future<void> cancelPickup(String pickupId) async {
-    await _db.collection('pickups').doc(pickupId).update({
-      'status': 'cancelled',
+    await _db.collection('pickupRequests').doc(pickupId).update({
+      'status': 'CANCELLED',
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }
