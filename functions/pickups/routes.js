@@ -72,7 +72,6 @@ router.post("/schedule", async (req, res) => {
             needHelp,
         } = req.body;
 
-        // Use authenticated user's ID if userId not provided
         const effectiveUserId = userId || decoded.uid;
 
         if (!address || !date || !time || !wasteTypes || !weightKg) {
@@ -84,8 +83,25 @@ router.post("/schedule", async (req, res) => {
 
         const priceBreakdown = calculatePrice(wasteTypes, weightKg);
 
+        // Fetch user profile to get name and phone for the collector app
+        let userName = "User";
+        let userPhone = "";
+        try {
+            const userDoc = await admin.firestore().collection("users").doc(effectiveUserId).get();
+            if (userDoc.exists) {
+                const userData = userDoc.data();
+                userName = userData.fullName || userData.name || "User";
+                userPhone = userData.phone || userData.phoneNumber || "";
+            }
+        } catch (e) {
+            console.error("Failed to fetch user profile for pickup:", e);
+        }
+
         const pickupData = {
             userId: effectiveUserId,
+            userName,
+            userPhone,
+            userAddress: address,
             address,
             date,
             time,
