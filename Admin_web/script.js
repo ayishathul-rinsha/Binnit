@@ -1,8 +1,8 @@
 // =============================================================
-// script.js — Emptico Admin Dashboard  |  Firebase Firestore
+// script.js â€” Emptico Admin Dashboard  |  Firebase Firestore
 // =============================================================
 
-// ─── Auth State Observer ──────────────────────────────────────
+// â”€â”€â”€ Auth State Observer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 firebase.auth().onAuthStateChanged(function (user) {
     if (user) {
         showDashboardForUser(user);
@@ -12,7 +12,7 @@ firebase.auth().onAuthStateChanged(function (user) {
     }
 });
 
-// ─── Tab Switch (Sign In ↔ Sign Up) ──────────────────────────
+// â”€â”€â”€ Tab Switch (Sign In â†” Sign Up) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function switchTab(tab) {
     const loginForm = document.getElementById('loginForm');
     const signupForm = document.getElementById('signupForm');
@@ -39,9 +39,9 @@ function switchTab(tab) {
     }
 }
 
-// ─── Sign Up ─────────────────────────────────────────────────
+// â”€â”€â”€ Sign Up â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Creates a Firebase Auth account AND stores the profile in
-// Firestore → admins/{uid}
+// Firestore â†’ admins/{uid}
 document.getElementById('signupForm').addEventListener('submit', function (e) {
     e.preventDefault();
 
@@ -60,7 +60,7 @@ document.getElementById('signupForm').addEventListener('submit', function (e) {
     if (password !== confirm) { errorEl.textContent = 'Passwords do not match.'; return; }
 
     btn.disabled = true;
-    btn.textContent = 'Creating account…';
+    btn.textContent = 'Creating accountâ€¦';
 
     firebase.auth().createUserWithEmailAndPassword(email, password)
         .then(function (userCredential) {
@@ -69,7 +69,7 @@ document.getElementById('signupForm').addEventListener('submit', function (e) {
             // Save display name to Firebase Auth profile
             const updateProfile = user.updateProfile({ displayName: name });
 
-            // Save full profile to Firestore  →  admins/{uid}  with role='admin'
+            // Save full profile to Firestore  â†’  admins/{uid}  with role='admin'
             const saveDoc = db.collection('admins').doc(user.uid).set({
                 uid: user.uid,
                 name: name,
@@ -84,7 +84,7 @@ document.getElementById('signupForm').addEventListener('submit', function (e) {
         .then(function () {
             btn.textContent = 'Create Account';
             btn.disabled = false;
-            // onAuthStateChanged fires automatically → opens dashboard
+            // onAuthStateChanged fires automatically â†’ opens dashboard
         })
         .catch(function (error) {
             btn.disabled = false;
@@ -99,8 +99,8 @@ document.getElementById('signupForm').addEventListener('submit', function (e) {
         });
 });
 
-// ─── Sign In ─────────────────────────────────────────────────
-// Firebase Auth validates the credentials — we never store
+// â”€â”€â”€ Sign In â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Firebase Auth validates the credentials â€” we never store
 // passwords ourselves.
 document.getElementById('loginForm').addEventListener('submit', function (e) {
     e.preventDefault();
@@ -112,7 +112,7 @@ document.getElementById('loginForm').addEventListener('submit', function (e) {
 
     errorEl.textContent = '';
     btn.disabled = true;
-    btn.textContent = 'Signing in…';
+    btn.textContent = 'Signing inâ€¦';
 
     firebase.auth().signInWithEmailAndPassword(email, password)
         .then(function () {
@@ -134,7 +134,7 @@ document.getElementById('loginForm').addEventListener('submit', function (e) {
         });
 });
 
-// ─── Show Dashboard After Auth ────────────────────────────────
+// â”€â”€â”€ Show Dashboard After Auth â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function showDashboardForUser(user) {
     document.getElementById('loginPage').style.display = 'none';
     document.getElementById('dashboard').classList.add('active');
@@ -149,7 +149,7 @@ function showDashboardForUser(user) {
     initFirebaseData();
 }
 
-// ─── Logout ──────────────────────────────────────────────────
+// â”€â”€â”€ Logout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function logout() {
     firebase.auth().signOut().then(function () {
         document.getElementById('dashboard').classList.remove('active');
@@ -160,7 +160,7 @@ function logout() {
     }).catch(function (err) { console.error('Logout error:', err); });
 }
 
-// ─── Page Navigation ─────────────────────────────────────────
+// â”€â”€â”€ Page Navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const pageMap = {
     'overview': 'overviewPage',
     'bins': 'binsPage',
@@ -181,16 +181,16 @@ function showPage(pageName, navEl) {
     closeSearchDropdown();
 }
 
-// ─── Global Search ───────────────────────────────────────────
+// â”€â”€â”€ Global Search â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const searchIndex = [
-    { text: 'Dashboard Overview', page: 'overview', navId: 'nav-overview', icon: '📊', desc: 'System summary & stats' },
-    { text: 'Smart Bin Management', page: 'bins', navId: 'nav-bins', icon: '🤖', desc: 'Premium IoT bins' },
-    { text: 'Basic Bin Scheduled', page: 'manual_bin', navId: 'nav-manual_bin', icon: '🗑️', desc: 'Manual collection bins' },
-    { text: 'Collections Log', page: 'collections', navId: 'nav-collections', icon: '🚛', desc: 'Completed & active collections' },
-    { text: 'Route Management', page: 'routes', navId: 'nav-routes', icon: '🗺️', desc: 'Collection routes' },
-    { text: 'User Management', page: 'users', navId: 'nav-users', icon: '👥', desc: 'All users & collectors' },
-    { text: 'Collection Requests', page: 'requests', navId: 'nav-requests', icon: '📋', desc: 'Pending & resolved requests' },
-    { text: 'Transactions', page: 'transactions', navId: 'nav-transactions', icon: '💳', desc: 'Payments & subscriptions' },
+    { text: 'Dashboard Overview', page: 'overview', navId: 'nav-overview', icon: 'ðŸ“Š', desc: 'System summary & stats' },
+    { text: 'Smart Bin Management', page: 'bins', navId: 'nav-bins', icon: 'ðŸ¤–', desc: 'Premium IoT bins' },
+    { text: 'Basic Bin Scheduled', page: 'manual_bin', navId: 'nav-manual_bin', icon: 'ðŸ—‘ï¸', desc: 'Manual collection bins' },
+    { text: 'Collections Log', page: 'collections', navId: 'nav-collections', icon: 'ðŸš›', desc: 'Completed & active collections' },
+    { text: 'Route Management', page: 'routes', navId: 'nav-routes', icon: 'ðŸ—ºï¸', desc: 'Collection routes' },
+    { text: 'User Management', page: 'users', navId: 'nav-users', icon: 'ðŸ‘¥', desc: 'All users & collectors' },
+    { text: 'Collection Requests', page: 'requests', navId: 'nav-requests', icon: 'ðŸ“‹', desc: 'Pending & resolved requests' },
+    { text: 'Transactions', page: 'transactions', navId: 'nav-transactions', icon: 'ðŸ’³', desc: 'Payments & subscriptions' },
 ];
 
 function globalSearch(query) {
@@ -237,7 +237,7 @@ document.addEventListener('click', e => {
     if (!e.target.closest('.search-bar-wrapper')) closeSearchDropdown();
 });
 
-// ─── Table Filter ─────────────────────────────────────────────
+// â”€â”€â”€ Table Filter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Supports both a <table id> (selects inner tbody rows)
 // and a <tbody id> directly (selects its own rows)
 function getRows(tableId) {
@@ -262,7 +262,7 @@ function filterBySelect(select, tableId, colIndex) {
     });
 }
 
-// ─── Action Button Handlers ───────────────────────────────────
+// â”€â”€â”€ Action Button Handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 document.addEventListener('DOMContentLoaded', function () {
     document.addEventListener('click', function (e) {
         const btn = e.target.closest('button');
@@ -271,26 +271,26 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (btn.classList.contains('btn-primary') && text === 'View') {
             const row = btn.closest('tr');
-            alert(`📋 Viewing details for: ${row ? row.cells[0].textContent.trim() : 'item'}`);
+            alert(`ðŸ“‹ Viewing details for: ${row ? row.cells[0].textContent.trim() : 'item'}`);
         }
         if (btn.classList.contains('btn-success') && text === 'Collect') {
             const row = btn.closest('tr');
             const label = row ? row.cells[0].textContent.trim() : 'bin';
-            if (confirm(`🚛 Schedule collection for ${label}?`)) alert(`✅ Collection scheduled for ${label}`);
+            if (confirm(`ðŸš› Schedule collection for ${label}?`)) alert(`âœ… Collection scheduled for ${label}`);
         }
         if (btn.classList.contains('btn-success') && text === 'Assign') {
             const row = btn.closest('tr');
             const reqId = row ? row.cells[0].textContent.trim() : 'request';
             if (confirm(`Assign a collector to ${reqId}?`)) {
                 row.remove(); updateRequestBadge();
-                alert(`✅ Collector assigned to ${reqId}`);
+                alert(`âœ… Collector assigned to ${reqId}`);
             }
         }
         if (btn.classList.contains('btn-danger') && text === 'Delete') {
             const row = btn.closest('tr');
             const name = row ? row.cells[0].textContent.trim() : 'user';
-            if (confirm(`⚠️ Are you sure you want to delete ${name}?`)) {
-                row.remove(); alert(`🗑️ ${name} has been removed.`);
+            if (confirm(`âš ï¸ Are you sure you want to delete ${name}?`)) {
+                row.remove(); alert(`ðŸ—‘ï¸ ${name} has been removed.`);
             }
         }
         if (btn.classList.contains('btn-danger') && text === 'Cancel') {
@@ -298,45 +298,53 @@ document.addEventListener('DOMContentLoaded', function () {
             const reqId = row ? row.cells[0].textContent.trim() : 'request';
             if (confirm(`Cancel ${reqId}?`)) {
                 row.remove(); updateRequestBadge();
-                alert(`❌ ${reqId} has been cancelled.`);
+                alert(`âŒ ${reqId} has been cancelled.`);
             }
         }
         if (btn.classList.contains('btn-primary') && text === 'Edit') {
             const row = btn.closest('tr');
             const name = row ? row.cells[0].textContent.trim() : 'user';
-            alert(`✏️ Editing profile for: ${name}\n(Full editor coming soon!)`);
+            alert(`âœï¸ Editing profile for: ${name}\n(Full editor coming soon!)`);
         }
         if (btn.classList.contains('btn-warning') && text === 'Report') {
             const row = btn.closest('tr');
-            alert(`📊 Generating report for ${row ? row.cells[0].textContent.trim() : 'item'}…`);
+            alert(`ðŸ“Š Generating report for ${row ? row.cells[0].textContent.trim() : 'item'}â€¦`);
         }
         if (btn.classList.contains('btn-warning') && text === 'Edit') {
             const row = btn.closest('tr');
-            alert(`🗺️ Opening route editor for ${row ? row.cells[0].textContent.trim() : 'route'}…`);
+            alert(`ðŸ—ºï¸ Opening route editor for ${row ? row.cells[0].textContent.trim() : 'route'}â€¦`);
         }
         if (btn.classList.contains('btn-primary') && text === 'View Map') {
             const row = btn.closest('tr');
             const name = row ? row.cells[1].textContent.trim() : 'route';
-            alert(`🗺️ Opening map for: ${name}\n(Map integration coming soon!)`);
+            alert(`ðŸ—ºï¸ Opening map for: ${name}\n(Map integration coming soon!)`);
         }
     });
 });
 
-// ─── Request Badge ────────────────────────────────────────────
+// â”€â”€â”€ Request Badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function updateRequestBadge() {
     const remaining = document.querySelectorAll('#requestsTable tbody tr:not(.loading-row)').length;
     const badge = document.getElementById('requestsBadge');
     if (badge) badge.textContent = remaining;
 }
 
-// ─── Firestore Live Data ──────────────────────────────────────
-// All tables listen with onSnapshot for real-time updates.
-// Structure mirrors Firestore collection names.
+
+// --- Firestore Live Data ---------------------------------------------------
 function initFirebaseData() {
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
 
     const getFillColor = l => l >= 80 ? '#ef4444' : l >= 60 ? '#f59e0b' : '#10b981';
 
-    // Helper: set table to loading state
+    function fmt(ts) {
+        if (!ts) return '-';
+        if (ts.toDate) return ts.toDate().toLocaleDateString('en-GB');
+        if (typeof ts === 'string') return ts;
+        if (ts.seconds) return new Date(ts.seconds * 1000).toLocaleDateString('en-GB');
+        return '-';
+    }
+
     function setLoading(tbodyId, cols) {
         const el = document.getElementById(tbodyId);
         if (!el) return null;
@@ -345,14 +353,13 @@ function initFirebaseData() {
         return tbody;
     }
 
-    // Helper: listen to a Firestore collection and render rows
     function listenCollection(collectionName, tbodyId, cols, rowBuilder) {
         const tbody = setLoading(tbodyId, cols);
         db.collection(collectionName).onSnapshot(snapshot => {
             if (!tbody) return;
             tbody.innerHTML = '';
             if (snapshot.empty) {
-                tbody.innerHTML = `<tr class="loading-row"><td colspan="${cols}">No data found in Firestore.</td></tr>`;
+                tbody.innerHTML = `<tr class="loading-row"><td colspan="${cols}">No records found in Firestore.</td></tr>`;
                 return;
             }
             snapshot.forEach(doc => {
@@ -360,304 +367,402 @@ function initFirebaseData() {
                 if (tr) tbody.appendChild(tr);
             });
         }, err => {
-            console.error(`Error fetching ${collectionName}:`, err);
-            if (tbody) tbody.innerHTML = `<tr class="loading-row"><td colspan="${cols}">Error loading data.</td></tr>`;
+            console.error(`[${collectionName}]`, err);
+            if (tbody) tbody.innerHTML = `<tr class="loading-row"><td colspan="${cols}">⚠ ${err.message}</td></tr>`;
         });
     }
 
-    // ── 1. Smart Bins ─────────────────────────────────────────
-    const smartTbody = setLoading('smartBinsTable', 6);
-    const activityTbody = setLoading('binActivityTable', 5);
+    function setStat(id, val) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = (val !== undefined && val !== null) ? val : '-';
+    }
 
+    function statusClass(s) {
+        const sl = (s || '').toLowerCase();
+        if (sl === 'active' || sl === 'approved' || sl === 'online'  || sl === 'completed' || sl === 'success') return 'online';
+        if (sl === 'pending' || sl === 'assigned') return 'pending';
+        return 'offline';
+    }
+
+    // ── 1. Smart Bins (smart_bins) ──────────────────────────────────────────
     db.collection('smart_bins').onSnapshot(snapshot => {
-        if (smartTbody) smartTbody.innerHTML = '';
-        if (activityTbody) activityTbody.innerHTML = '';
+        setStat('statTotalSmartBins', snapshot.size.toLocaleString());
+        setStat('statTotalSmartBinsChange', snapshot.size + ' smart bins registered');
 
-        if (snapshot.empty) {
-            if (smartTbody) smartTbody.innerHTML = '<tr class="loading-row"><td colspan="6">No smart bins in Firestore.</td></tr>';
-            if (activityTbody) activityTbody.innerHTML = '<tr class="loading-row"><td colspan="5">No activity yet.</td></tr>';
-            return;
-        }
-
-        snapshot.forEach(doc => {
-            const bin = doc.data();
-            const fillLvl = bin.fillLevel || 0;
-            const fillHTML = `<div class="fill-bar"><div class="fill-inner" style="width:${fillLvl}%;background:${getFillColor(fillLvl)}"></div><span>${fillLvl}%</span></div>`;
-            const statusHTML = `<span class="status ${bin.status === 'Online' ? 'online' : 'offline'}">${bin.status || 'Unknown'}</span>`;
-
-            if (smartTbody) {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${bin.id || doc.id}</td>
-                    <td>${bin.location || 'Unknown'}</td>
-                    <td>${bin.type || 'General'}</td>
-                    <td>${fillHTML}</td>
-                    <td>${statusHTML}</td>
-                    <td>
-                        <button class="btn btn-primary"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>View</button>
-                        <button class="btn btn-success"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Collect</button>
-                    </td>`;
-                smartTbody.appendChild(tr);
-            }
-
-            if (activityTbody) {
-                const trA = document.createElement('tr');
-                trA.innerHTML = `
-                    <td>${bin.id || doc.id}</td>
-                    <td>${bin.location || 'Unknown'}</td>
-                    <td>${fillHTML}</td>
-                    <td>${statusHTML}</td>
-                    <td>${bin.lastUpdated || 'Just now'}</td>`;
-                activityTbody.appendChild(trA);
-            }
-        });
-    });
-
-    // ── 2. Normal Bins ────────────────────────────────────────
-    const normalTbody = setLoading('normalBinsTable', 6);
-    const overviewTbody = setLoading('overviewNormalBinsTable', 5);
-
-    db.collection('normal_bins').onSnapshot(snapshot => {
-        if (normalTbody) normalTbody.innerHTML = '';
-        if (overviewTbody) overviewTbody.innerHTML = '';
-
-        if (snapshot.empty) {
-            if (normalTbody) normalTbody.innerHTML = '<tr class="loading-row"><td colspan="6">No normal bins in Firestore.</td></tr>';
-            if (overviewTbody) overviewTbody.innerHTML = '<tr class="loading-row"><td colspan="5">No data found.</td></tr>';
-            return;
-        }
-
-        snapshot.forEach(doc => {
-            const bin = doc.data();
-            const sc = bin.status === 'Collected' ? 'online' : bin.status === 'Pending' ? 'pending' : 'offline';
-
-            if (normalTbody) {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${bin.location || 'Unknown'}</td>
-                    <td>${bin.type || 'General'}</td>
-                    <td>${bin.scheduledDate || '-'}</td>
-                    <td>${bin.scheduledTime || '-'}</td>
-                    <td><span class="status ${sc}">${bin.status || 'Pending'}</span></td>
-                    <td>
-                        <button class="btn btn-primary"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>View</button>
-                        <button class="btn btn-success"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Collect</button>
-                    </td>`;
-                normalTbody.appendChild(tr);
-            }
-
-            if (overviewTbody) {
-                const trO = document.createElement('tr');
-                trO.innerHTML = `
-                    <td>${bin.location || 'Unknown'}</td>
-                    <td>${bin.type || 'General'}</td>
-                    <td>${bin.scheduledDate || '-'}</td>
-                    <td>${bin.collector || 'Unassigned'}</td>
-                    <td><span class="status ${sc}">${bin.status || 'Pending'}</span></td>`;
-                overviewTbody.appendChild(trO);
-            }
-        });
-    });
-
-    // ── 3. Collections Log — Collectors (from 'collectors' collection) ──
-    const collLogTbody = setLoading('collectionsTableBody', 9);
-    db.collection('collectors')
-        .onSnapshot(snapshot => {
-            if (!collLogTbody) return;
-            collLogTbody.innerHTML = '';
+        // Overview — Recent Smart Bin Activity
+        const activityTbody = document.getElementById('binActivityTable');
+        if (activityTbody) {
+            activityTbody.innerHTML = '';
             if (snapshot.empty) {
-                collLogTbody.innerHTML = '<tr class="loading-row"><td colspan="9">No collectors found in Firestore.</td></tr>';
-                return;
+                activityTbody.innerHTML = '<tr class="loading-row"><td colspan="5">No smart bin activity yet.</td></tr>';
+            } else {
+                snapshot.forEach(doc => {
+                    const bin = doc.data();
+                    const fillLvl = bin.fillLevel || bin.fill_level || 0;
+                    const fillHTML = `<div class="fill-bar"><div class="fill-inner" style="width:${fillLvl}%;background:${getFillColor(fillLvl)}"></div><span>${fillLvl}%</span></div>`;
+                    const sc = bin.status === 'Online' || bin.status === 'online' ? 'online' : 'offline';
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${bin.binId || bin.id || doc.id}</td>
+                        <td>${bin.location || bin.address || 'Unknown'}</td>
+                        <td>${fillHTML}</td>
+                        <td><span class="status ${sc}">${bin.status || 'Unknown'}</span></td>
+                        <td>${fmt(bin.lastUpdated || bin.last_updated)}</td>`;
+                    activityTbody.appendChild(tr);
+                });
             }
-            snapshot.forEach(doc => {
-                const u = doc.data();
+        }
+    }, err => console.error('[smart_bins]', err));
 
-                // Map any status value → CSS class
-                const statusLower = (u.status || '').toLowerCase();
-                const sc = (statusLower === 'approved' || statusLower === 'active') ? 'online'
-                    : statusLower === 'pending' ? 'pending' : 'offline';
+    // ── 2. User-facing bins (bins) ─────────────────────────────────────────
+    db.collection('bins').onSnapshot(snapshot => {
+        setStat('statUserBinsCount', snapshot.size.toLocaleString());
+    }, err => console.warn('[bins]', err.message));
 
-                // Vehicle type from nested object
-                const vehicleType = (u.vehicle && u.vehicle.vehicle_type)
-                    ? u.vehicle.vehicle_type.replace(/_/g, ' ')
-                    : (u.vehicle_type ? u.vehicle_type.replace(/_/g, ' ') : '-');
-
-                // Rating — support numeric or string
-                const rating = u.rating !== undefined && u.rating !== null ? u.rating : '-';
-
-                // Pickups
-                const pickups = u.total_pickups !== undefined ? u.total_pickups : '-';
-
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${u.name || '-'}</td>
-                    <td>${u.email || '-'}</td>
-                    <td>${u.phone || u.phone_number || '-'}</td>
-                    <td>${u.city || u.zone || '-'}</td>
-                    <td><span class="status ${sc}">${u.status || '-'}</span></td>
-                    <td>${rating}</td>
-                    <td>${pickups}</td>
-                    <td>${vehicleType}</td>
-                    <td>
-                        <button class="btn btn-primary"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>View</button>
-                        <button class="btn btn-warning"><svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit</button>
-                    </td>`;
-                collLogTbody.appendChild(tr);
-            });
-        }, err => {
-            console.error('Error fetching collectors:', err);
-            if (collLogTbody) collLogTbody.innerHTML = `<tr class="loading-row"><td colspan="9">⚠️ ${err.message}</td></tr>`;
+    // ── 3. Pro Users (Smart page table + stat cards) ───────────────────────
+    const smartTbody = setLoading('smartBinsTable', 7);
+    db.collection('users').onSnapshot(snapshot => {
+        if (!smartTbody) return;
+        smartTbody.innerHTML = '';
+        let proCount = 0, activeProCount = 0;
+        const proUsers = [];
+        snapshot.forEach(doc => {
+            const u = doc.data();
+            const planL = (u.plan || u.subscription || '').toLowerCase();
+            if (planL === 'pro' || planL === 'premium') {
+                proCount++;
+                const sl = (u.status || '').toLowerCase();
+                if (sl === 'active' || sl === 'approved') activeProCount++;
+                proUsers.push({ id: doc.id, data: u });
+            }
         });
+        setStat('statProUsers', proCount.toLocaleString());
+        setStat('statActiveProUsers', activeProCount.toLocaleString());
+        if (proUsers.length === 0) {
+            smartTbody.innerHTML = '<tr class="loading-row"><td colspan="7">No Pro plan users found.</td></tr>';
+            return;
+        }
+        proUsers.forEach(({ data: u }) => {
+            const dateStr = u.joined || fmt(u.created_at) || '-';
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${u.name || '-'}</td>
+                <td>${u.email || '-'}</td>
+                <td>${u.phone || u.phone_number || '-'}</td>
+                <td><span class="badge-label" style="border-color:#7c3aed;color:#7c3aed">★ Pro</span></td>
+                <td><span class="status ${statusClass(u.status)}">${u.status || '-'}</span></td>
+                <td>${dateStr}</td>
+                <td>
+                    <button class="btn btn-warning">Edit</button>
+                    <button class="btn btn-danger">Delete</button>
+                </td>`;
+            smartTbody.appendChild(tr);
+        });
+    }, err => {
+        console.error('[pro users]', err);
+        if (smartTbody) smartTbody.innerHTML = `<tr class="loading-row"><td colspan="7">⚠ ${err.message}</td></tr>`;
+    });
 
+    // ── 4. Free Users (Basic page table + stat cards) ─────────────────────
+    const normalTbody = setLoading('normalBinsTable', 6);
+    db.collection('users').onSnapshot(snapshot => {
+        if (!normalTbody) return;
+        normalTbody.innerHTML = '';
+        let freeCount = 0, activeFreeCount = 0, inactiveFreeCount = 0;
+        const freeUsers = [];
+        snapshot.forEach(doc => {
+            const u = doc.data();
+            const planL = (u.plan || u.subscription || '').toLowerCase();
+            if (planL === 'free' || planL === '') {
+                freeCount++;
+                const sl = (u.status || '').toLowerCase();
+                if (sl === 'active' || sl === 'approved') activeFreeCount++;
+                else inactiveFreeCount++;
+                freeUsers.push({ id: doc.id, data: u });
+            }
+        });
+        setStat('statFreeUsers', freeCount.toLocaleString());
+        setStat('statActiveFreeUsers', activeFreeCount.toLocaleString());
+        setStat('statInactiveFreeUsers', inactiveFreeCount.toLocaleString());
+        if (freeUsers.length === 0) {
+            normalTbody.innerHTML = '<tr class="loading-row"><td colspan="6">No Free plan users found.</td></tr>';
+            return;
+        }
+        freeUsers.forEach(({ data: u }) => {
+            const dateStr = u.joined || fmt(u.created_at) || '-';
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${u.name || '-'}</td>
+                <td>${u.email || '-'}</td>
+                <td>${u.phone || u.phone_number || '-'}</td>
+                <td><span class="badge-label">Free</span></td>
+                <td>${dateStr}</td>
+                <td>
+                    <button class="btn btn-warning">Edit</button>
+                    <button class="btn btn-danger">Delete</button>
+                </td>`;
+            normalTbody.appendChild(tr);
+        });
+    }, err => {
+        console.error('[free users]', err);
+        if (normalTbody) normalTbody.innerHTML = `<tr class="loading-row"><td colspan="6">⚠ ${err.message}</td></tr>`;
+    });
 
+    // ── 5. Collectors (Collections page) ───────────────────────────────────
+    const collLogTbody = setLoading('collectionsTableBody', 8);
+    db.collection('collectors').onSnapshot(snapshot => {
+        setStat('statCollInProgress', snapshot.size.toLocaleString());
+        if (!collLogTbody) return;
+        collLogTbody.innerHTML = '';
+        if (snapshot.empty) {
+            collLogTbody.innerHTML = '<tr class="loading-row"><td colspan="8">No collectors found.</td></tr>';
+            return;
+        }
+        snapshot.forEach(doc => {
+            const u = doc.data();
+            const vehicleType = (u.vehicle && u.vehicle.vehicle_type)
+                ? u.vehicle.vehicle_type.replace(/_/g, ' ')
+                : (u.vehicle_type ? u.vehicle_type.replace(/_/g, ' ') : '-');
+            const rating  = u.rating   !== undefined ? u.rating         : '-';
+            const pickups = u.total_pickups !== undefined ? u.total_pickups : '-';
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${u.name || '-'}</td>
+                <td>${u.email || '-'}</td>
+                <td>${u.phone || u.phone_number || '-'}</td>
+                <td>${u.city || u.zone || u.location || '-'}</td>
+                <td>${rating}</td>
+                <td>${pickups}</td>
+                <td>${vehicleType}</td>
+                <td>
+                    <button class="btn btn-primary">View</button>
+                    <button class="btn btn-warning">Edit</button>
+                </td>`;
+            collLogTbody.appendChild(tr);
+        });
+    }, err => {
+        console.error('[collectors]', err);
+        if (collLogTbody) collLogTbody.innerHTML = `<tr class="loading-row"><td colspan="8">⚠ ${err.message}</td></tr>`;
+    });
 
-    // ── 4. Routes ─────────────────────────────────────────────
+    // ── 6. Routes ──────────────────────────────────────────────────────────
     listenCollection('routes', 'routesTable', 8, (id, item) => {
         const tr = document.createElement('tr');
         const s = item.status === 'Active' ? 'online' : item.status === 'In Progress' ? 'pending' : 'offline';
         tr.innerHTML = `
-            <td>${item.id || id}</td><td>${item.name || '-'}</td><td>${item.zone || '-'}</td>
-            <td>${item.bins || 0}</td><td>${item.distance || 0}</td><td>${item.assignedCollector || '-'}</td>
+            <td>${item.id || id}</td>
+            <td>${item.name || '-'}</td>
+            <td>${item.zone || '-'}</td>
+            <td>${item.bins || 0}</td>
+            <td>${item.distance || 0}</td>
+            <td>${item.assignedCollector || item.assigned_collector || '-'}</td>
             <td><span class="status ${s}">${item.status || 'Idle'}</span></td>
             <td>
-                <button class="btn btn-primary"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>View Map</button>
-                <button class="btn btn-warning"><svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit</button>
+                <button class="btn btn-primary">View Map</button>
+                <button class="btn btn-warning">Edit</button>
             </td>`;
         return tr;
     });
 
-    // ── 5 & 6. Users — table + live stat counts ───────────────
-    // Single snapshot covers all users (all roles) — counts derived client-side
+    // ── 7. All Users (Users Management page) ───────────────────────────────
     const usersTbody = setLoading('usersTableBody', 7);
-
     db.collection('users').onSnapshot(snapshot => {
         if (!usersTbody) return;
         usersTbody.innerHTML = '';
-
-        // ── Count accumulators ──────────────────────────────
-        let total = 0;
-        let active = 0;
-        let premium = 0;
-        let collectors = 0;
-
-        if (snapshot.empty) {
-            usersTbody.innerHTML = '<tr class="loading-row"><td colspan="7">No users found in Firestore.</td></tr>';
-        } else {
-            snapshot.forEach(doc => {
-                const u = doc.data();
-                const role = (u.role || '').toLowerCase();
-
-                // ── Tally counts ───────────────────────────
-                total++;
-                const statusL = (u.status || '').toLowerCase();
-                if (statusL === 'active' || statusL === 'approved') active++;
-                const planL = (u.plan || '').toLowerCase();
-                if (planL === 'premium') premium++;
-                if (role === 'collector') collectors++;
-
-                // ── Build table row ────────────────────────
-                const sc = (statusL === 'active' || statusL === 'approved') ? 'online'
-                    : statusL === 'pending' ? 'pending' : 'offline';
-                const planLbl = planL === 'premium' ? '★ Premium' : (u.plan || 'Free');
-
-                // Date: prefer joined, fall back to created_at
-                const dateStr = u.joined || (u.created_at
-                    ? new Date(u.created_at).toLocaleDateString('en-GB')
-                    : '-');
-
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${u.name || '-'}</td>
-                    <td>${u.email || '-'}</td>
-                    <td>${u.role || 'user'}</td>
-                    <td>${planLbl}</td>
-                    <td><span class="status ${sc}">${u.status || '-'}</span></td>
-                    <td>${dateStr}</td>
-                    <td>
-                        <button class="btn btn-warning"><svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit</button>
-                        <button class="btn btn-danger"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>Delete</button>
-                    </td>`;
-                usersTbody.appendChild(tr);
-            });
+        let total = 0, freeCount = 0, premium = 0;
+        const allUsers = [];
+        snapshot.forEach(doc => allUsers.push({ id: doc.id, data: doc.data() }));
+        const planRank = p => (p === 'pro' || p === 'premium') ? 0 : 1;
+        allUsers.sort((a, b) => planRank((a.data.plan || a.data.subscription || '').toLowerCase())
+                               - planRank((b.data.plan || b.data.subscription || '').toLowerCase()));
+        if (allUsers.length === 0) {
+            usersTbody.innerHTML = '<tr class="loading-row"><td colspan="7">No users found.</td></tr>';
         }
-
-        // ── Update stat cards ──────────────────────────────
-        const totalEl = document.getElementById('statTotalUsers');
-        const activeEl = document.getElementById('statActiveUsers');
-        const rateEl = document.getElementById('statActiveRate');
-        const premiumEl = document.getElementById('statPremiumUsers');
-        const collectEl = document.getElementById('statCollectors');
-        const totalChange = document.getElementById('statTotalUsersChange');
-
-        if (totalEl) totalEl.textContent = total.toLocaleString();
-        if (activeEl) activeEl.textContent = active.toLocaleString();
-        if (collectEl) collectEl.textContent = collectors.toLocaleString();
-        if (premiumEl) premiumEl.textContent = premium.toLocaleString();
-
-        const rate = total > 0 ? Math.round((active / total) * 100) : 0;
-        if (rateEl) rateEl.textContent = `${rate}% active rate`;
-        if (totalChange) totalChange.textContent = `${total} total in system`;
-
+        allUsers.forEach(({ id, data: u }) => {
+            const planL = (u.plan || u.subscription || '').toLowerCase();
+            total++;
+            if (planL === 'free' || planL === '') freeCount++;
+            if (planL === 'premium' || planL === 'pro') premium++;
+            const planDisplay = (planL === 'premium' || planL === 'pro') ? '★ Pro' : 'Free';
+            const dateStr = u.joined || fmt(u.created_at) || '-';
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${u.name || '-'}</td>
+                <td>${u.email || '-'}</td>
+                <td>${u.role || 'user'}</td>
+                <td>${planDisplay}</td>
+                <td><span class="status ${statusClass(u.status)}">${u.status || '-'}</span></td>
+                <td>${dateStr}</td>
+                <td>
+                    <button class="btn btn-warning">Edit</button>
+                    <button class="btn btn-danger">Delete</button>
+                </td>`;
+            usersTbody.appendChild(tr);
+        });
+        setStat('statTotalUsers', total.toLocaleString());
+        setStat('statActiveUsers', freeCount.toLocaleString());   // Basic Plan count
+        setStat('statPremiumUsers', premium.toLocaleString());
     }, err => {
-        console.error('Error fetching users:', err);
-        if (usersTbody) usersTbody.innerHTML = `<tr class="loading-row"><td colspan="7">⚠️ ${err.message}</td></tr>`;
+        console.error('[users]', err);
+        if (usersTbody) usersTbody.innerHTML = `<tr class="loading-row"><td colspan="7">⚠ ${err.message}</td></tr>`;
     });
 
+    // ── 8. Pickup Requests (Requests page) ─────────────────────────────────
+    const reqTbody = setLoading('requestsTableBody', 8);
+    db.collection('pickupRequests').onSnapshot(snapshot => {
+        let total = 0, pending = 0, assigned = 0, completed = 0;
+        if (reqTbody) reqTbody.innerHTML = '';
+        if (snapshot.empty && reqTbody) {
+            reqTbody.innerHTML = '<tr class="loading-row"><td colspan="8">No pickup requests found.</td></tr>';
+        }
+        snapshot.forEach(doc => {
+            const r = doc.data();
+            total++;
+            const sl = (r.status || '').toLowerCase();
+            if (sl === 'pending') pending++;
+            else if (sl === 'assigned') assigned++;
+            else if (sl === 'completed') completed++;
 
-
-    // ── 7. Requests ───────────────────────────────────────────
-    listenCollection('requests', 'requestsTable', 7, (id, item) => {
-        const tr = document.createElement('tr');
-        const pCls = item.priority === 'High' ? 'high' : item.priority === 'Medium' ? 'medium' : 'low';
-        tr.innerHTML = `
-            <td>${item.id || id}</td><td>${item.location || '-'}</td>
-            <td><span class="priority ${pCls}">${item.priority || 'Low'}</span></td>
-            <td>${item.user || '-'}</td>
-            <td><span class="status pending">${item.status || 'Pending'}</span></td>
-            <td>${item.date || '-'}</td>
-            <td>
-                <button class="btn btn-success"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>Assign</button>
-                <button class="btn btn-danger"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>Cancel</button>
-            </td>`;
-        setTimeout(updateRequestBadge, 50);
-        return tr;
+            if (!reqTbody) return;
+            const reqId = r.requestId || r.request_id || doc.id.slice(0, 8).toUpperCase();
+            const location = r.address || r.location ||
+                (r.coordinates ? `${r.coordinates.lat?.toFixed(4)}, ${r.coordinates.lng?.toFixed(4)}` : '-');
+            const wasteType = r.wasteType || r.waste_type || r.type || '-';
+            const reqBy    = r.userName  || r.user_name  || r.userEmail || r.user_email || '-';
+            const assignedTo = r.collectorName || r.collector_name || r.collectorId || '-';
+            const dateStr  = fmt(r.scheduledDate || r.scheduled_date || r.createdAt || r.created_at);
+            const sc       = sl === 'completed' ? 'online' : sl === 'pending' ? 'pending' : sl === 'assigned' ? 'pending' : 'offline';
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${reqId}</td>
+                <td>${location}</td>
+                <td>${wasteType}</td>
+                <td>${reqBy}</td>
+                <td>${assignedTo}</td>
+                <td><span class="status ${sc}">${r.status || '-'}</span></td>
+                <td>${dateStr}</td>
+                <td>
+                    <button class="btn btn-success">Assign</button>
+                    <button class="btn btn-danger">Cancel</button>
+                </td>`;
+            if (reqTbody) reqTbody.appendChild(tr);
+        });
+        setStat('statTotalRequests', total.toLocaleString());
+        setStat('statPendingRequests', pending.toLocaleString());
+        setStat('statAssignedRequests', assigned.toLocaleString());
+        setStat('statCompletedRequests', completed.toLocaleString());
+        const badge = document.getElementById('requestsBadge');
+        if (badge) badge.textContent = pending + assigned;
+    }, err => {
+        console.error('[pickupRequests]', err);
+        if (reqTbody) reqTbody.innerHTML = `<tr class="loading-row"><td colspan="8">⚠ ${err.message}</td></tr>`;
     });
 
-    // ── 8. Resolved Requests ──────────────────────────────────
-    listenCollection('resolved_requests', 'resolvedRequestsTable', 5, (id, item) => {
+    // ── 9. Resolved Requests ───────────────────────────────────────────────
+    listenCollection('resolved_requests', 'resolvedRequestsTable', 5, (id, r) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${item.id || id}</td><td>${item.location || '-'}</td>
-            <td>${item.assignedTo || '-'}</td><td>${item.resolvedOn || '-'}</td>
+            <td>${r.requestId || r.request_id || id.slice(0, 8).toUpperCase()}</td>
+            <td>${r.address || r.location || '-'}</td>
+            <td>${r.collectorName || r.collector_name || '-'}</td>
+            <td>${fmt(r.resolvedAt || r.resolved_at || r.updatedAt)}</td>
             <td><span class="status online">Resolved</span></td>`;
         return tr;
     });
 
-    // ── 9. Transactions ───────────────────────────────────────
-    listenCollection('transactions', 'txHistoryTable', 7, (id, item) => {
-        const tr = document.createElement('tr');
-        const s = item.status === 'Success' ? 'online' : item.status === 'Pending' ? 'pending' : 'offline';
-        tr.innerHTML = `
-            <td>${item.id || id}</td><td>${item.name || '-'}</td><td>${item.email || '-'}</td>
-            <td>${item.type || '-'}</td>
-            <td><span class="status ${s}">${item.status || 'Pending'}</span></td>
-            <td>${item.amount || '-'}</td><td>${item.date || '-'}</td>`;
-        return tr;
+    // ── 10. Transactions ───────────────────────────────────────────────────
+    const txTbody = setLoading('txHistoryTable', 7);
+    db.collection('transactions').onSnapshot(snapshot => {
+        if (!txTbody) return;
+        txTbody.innerHTML = '';
+        if (snapshot.empty) {
+            txTbody.innerHTML = '<tr class="loading-row"><td colspan="7">No transactions found.</td></tr>';
+            return;
+        }
+        const txList = [];
+        snapshot.forEach(doc => txList.push({ id: doc.id, data: doc.data() }));
+        txList.sort((a, b) => {
+            const da = a.data.createdAt?.seconds || a.data.date || 0;
+            const db2 = b.data.createdAt?.seconds || b.data.date || 0;
+            return db2 - da;
+        });
+        txList.forEach(({ id, data: t }) => {
+            const sc = statusClass(t.status);
+            const amount = t.amount !== undefined ? '₹' + Number(t.amount).toLocaleString('en-IN') : '-';
+            const dateStr = fmt(t.date || t.createdAt || t.created_at);
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${t.txnId || t.transaction_id || id.slice(0, 10).toUpperCase()}</td>
+                <td>${t.userName || t.user_name || '-'}</td>
+                <td>${t.userEmail || t.user_email || '-'}</td>
+                <td>${t.type || t.transaction_type || '-'}</td>
+                <td><span class="status ${sc}">${t.status || '-'}</span></td>
+                <td>${amount}</td>
+                <td>${dateStr}</td>`;
+            txTbody.appendChild(tr);
+        });
+    }, err => {
+        console.error('[transactions]', err);
+        if (txTbody) txTbody.innerHTML = `<tr class="loading-row"><td colspan="7">⚠ ${err.message}</td></tr>`;
     });
 
-    // ── 10. Subscriptions ─────────────────────────────────────
-    listenCollection('subscriptions', 'subscriptionsTable', 7, (id, item) => {
-        const tr = document.createElement('tr');
-        const s = item.status === 'Active' ? 'online' : item.status === 'Pending' ? 'pending' : 'offline';
-        const planStyle = item.plan === 'Premium' ? 'border-color:#7c3aed;color:#7c3aed' : '';
-        tr.innerHTML = `
-            <td>${item.id || id}</td><td>${item.user || '-'}</td>
-            <td><span class="badge-label" style="${planStyle}">${item.plan || 'Free'}</span></td>
-            <td>${item.started || '-'}</td>
-            <td><span class="status ${s}">${item.status || 'Active'}</span></td>
-            <td>${item.renewal || '—'}</td><td>${item.amount || '-'}</td>`;
-        return tr;
+    // ── 11. Subscriptions ──────────────────────────────────────────────────
+    const subTbody = setLoading('subscriptionsTable', 7);
+    db.collection('subscriptions').onSnapshot(snapshot => {
+        if (!subTbody) return;
+        subTbody.innerHTML = '';
+        if (snapshot.empty) {
+            subTbody.innerHTML = '<tr class="loading-row"><td colspan="7">No subscriptions found.</td></tr>';
+            return;
+        }
+        snapshot.forEach(doc => {
+            const s = doc.data();
+            const sc   = statusClass(s.status);
+            const plan = s.plan || s.planName || s.plan_name || '-';
+            const amount = s.amount !== undefined ? '₹' + Number(s.amount).toLocaleString('en-IN') + '/mo' : '-';
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${s.subId || s.subscription_id || doc.id.slice(0, 8).toUpperCase()}</td>
+                <td>${s.userName || s.user_name || s.userId || '-'}</td>
+                <td>${plan}</td>
+                <td>${fmt(s.startDate || s.start_date || s.createdAt)}</td>
+                <td><span class="status ${sc}">${s.status || '-'}</span></td>
+                <td>${fmt(s.renewalDate || s.renewal_date || s.expiryDate)}</td>
+                <td>${amount}</td>`;
+            subTbody.appendChild(tr);
+        });
+    }, err => {
+        console.error('[subscriptions]', err);
+        if (subTbody) subTbody.innerHTML = `<tr class="loading-row"><td colspan="7">⚠ ${err.message}</td></tr>`;
     });
-}
 
-console.log('✅ Emptico Admin Dashboard initialized!');
+    // ── 12. Overview — Recent Normal Bin Collections (recently joined users) ─
+    const overviewNormalTbody = document.getElementById('overviewNormalBinsTable');
+    db.collection('users').onSnapshot(snapshot => {
+        if (!overviewNormalTbody) return;
+        overviewNormalTbody.innerHTML = '';
+        const recent = [];
+        snapshot.forEach(doc => recent.push({ id: doc.id, data: doc.data() }));
+        recent.sort((a, b) => {
+            const da = a.data.createdAt?.seconds || 0;
+            const db2 = b.data.createdAt?.seconds || 0;
+            return db2 - da;
+        });
+        recent.slice(0, 10).forEach(({ data: u }) => {
+            const planL = (u.plan || u.subscription || '').toLowerCase();
+            const planDisplay = (planL === 'premium' || planL === 'pro') ? '★ Pro' : 'Free';
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${u.name || '-'}</td>
+                <td>${u.email || '-'}</td>
+                <td>${planDisplay}</td>
+                <td><span class="status ${statusClass(u.status)}">${u.status || '-'}</span></td>
+                <td>${u.joined || fmt(u.createdAt || u.created_at)}</td>`;
+            overviewNormalTbody.appendChild(tr);
+        });
+        if (recent.length === 0) {
+            overviewNormalTbody.innerHTML = '<tr class="loading-row"><td colspan="5">No users yet.</td></tr>';
+        }
+    }, err => console.error('[overview users]', err));
+
+} // end initFirebaseData
