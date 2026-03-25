@@ -1,0 +1,101 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Admins collection ────────────────────────────────────────
+    match /admins/{uid} {
+      allow get:    if request.auth != null;
+      allow list:   if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && request.auth.uid == uid;
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // ── Admin helper function ───────────────────────────────────
+    function isAdmin() {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // ── Collector helper function ───────────────────────────────
+    function isCollector() {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/collectors/$(request.auth.uid));
+    }
+
+    // ── Admin-only collections (unchanged) ──────────────────────
+    match /collectors/{docId}         { allow read, write: if isAdmin(); }
+    match /smart_bins/{docId}         { allow read, write: if isAdmin(); }
+    match /normal_bins/{docId}        { allow read, write: if isAdmin(); }
+    match /routes/{docId}             { allow read, write: if isAdmin(); }
+    match /requests/{docId}           { allow read, write: if isAdmin(); }
+    match /resolved_requests/{docId}  { allow read, write: if isAdmin(); }
+    match /adminStats/{docId}         { allow read, write: if isAdmin(); }
+
+    // ── Shared collections (admin + user app) ───────────────────
+
+    // Users — admins can access all, regular users can access own doc
+    match /users/{docId} {
+      allow read, write: if isAdmin();
+      allow read, write: if request.auth != null && request.auth.uid == docId;
+      
+      // Allow users to manage their own addresses sub-collection
+      match /addresses/{addressId} {
+        allow read, write: if request.auth != null && request.auth.uid == docId;
+      }
+    }
+
+    // Transactions — admins can access all, users can create & read own
+    match /transactions/{docId} {
+      allow read, write: if isAdmin();
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    // Subscriptions — admins can access all, users can manage own
+    match /subscriptions/{docId} {
+      allow read, write: if isAdmin();
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow read, update: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    // ── User App collections ────────────────────────────────────
+
+    // Pickup requests — admins + collectors can access all, users can create & manage own
+    match /pickupRequests/{docId} {
+      allow read, write: if isAdmin();
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow read, update: if request.auth != null && resource.data.userId == request.auth.uid;
+      // ── Collector app: collectors can read all & update assigned pickups ──
+      allow read: if isCollector();
+      allow update: if isCollector();
+    }
+
+    // Smart bins (user-facing) — users can read/write own bins
+    match /bins/{docId} {
+      allow read, write: if isAdmin();
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow read, update: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    // Marketplace — any authenticated user can browse, users manage own listings
+    match /marketplace/{docId} {
+      allow read, write: if isAdmin();
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    // Market rates — read-only for users
+    match /marketRates/{docId} {
+      allow read, write: if isAdmin();
+      allow read: if request.auth != null;
+    }
+
+    // Subscription plans — read-only for users
+    match /subscriptionPlans/{docId} {
+      allow read, write: if isAdmin();
+      allow read: if request.auth != null;
+    }
+  }
+}
