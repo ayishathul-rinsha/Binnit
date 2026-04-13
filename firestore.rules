@@ -1,0 +1,162 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Admins collection ────────────────────────────────────────
+    match /admins/{uid} {
+      allow get:    if request.auth != null;
+      allow list:   if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && request.auth.uid == uid;
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // ── Admin helper function ───────────────────────────────────
+    function isAdmin() {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // ── Collector helper function ───────────────────────────────
+    function isCollector() {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/collectors/$(request.auth.uid));
+    }
+
+    // ── Admin-only collections ──────────────────────────────────
+    match /smart_bins/{docId}         { allow read, write: if isAdmin(); }
+    match /normal_bins/{docId}        { allow read, write: if isAdmin(); }
+    match /routes/{docId}             { allow read, write: if isAdmin(); }
+    match /requests/{docId}           { allow read, write: if isAdmin(); }
+    match /resolved_requests/{docId}  { allow read, write: if isAdmin(); }
+    match /adminStats/{docId}         { allow read, write: if isAdmin(); }
+
+    // ── Shared collections (admin + user app + collector app) ───
+
+    // Collectors
+    match /collectors/{docId} {
+      allow read: if request.auth != null;
+      // Admin can manage all, collectors can manage their own profile
+      allow write: if isAdmin() || (request.auth != null && request.auth.uid == docId);
+      // Added `create` to allow for in-app collector registration
+      allow create: if request.auth != null; 
+    }
+
+    // Users — admins can access all, regular users can access own doc
+    match /users/{docId} {
+      allow read, write: if isAdmin();
+      allow read, write: if request.auth != null && request.auth.uid == docId;
+      // Collectors can read user docs to see pickup names/locations
+      allow read: if isCollector();
+      // Added `create` to allow for in-app user registration
+      allow create: if request.auth != null;
+
+      // Allow users to manage their own addresses sub-collection
+      match /addresses/{addressId} {
+        allow read, write: if request.auth != null && request.auth.uid == docId;
+        // Assigned collector can read user's address
+        allow read: if isCollector();
+      }
+    }
+
+    // Transactions — admins can access all, users can create & read own
+    match /transactions/{docId} {
+      allow read, write: if isAdmin();
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    // Subscriptions — admins can access all, users can manage own
+    match /subscriptions/{docId} {
+      allow read, write: if isAdmin();
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow read, update: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    // ── User App collections ────────────────────────────────────
+
+    // Pickup requests (camelCase - combined rules from earlier definitions)
+    match /pickupRequests/{docId} {
+      allow read, write: if isAdmin();
+      allow create: if request.auth != null;
+      allow read: if isCollector() || request.auth != null;
+      allow update: if isCollector() || request.auth != null;
+    }
+
+    // Smart bins (user-facing) — users can read/write own bins
+    match /bins/{docId} {
+      allow read, write: if isAdmin();
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow read, update: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    // Marketplace — any authenticated user can browse, users manage own listings
+    match /marketplace/{docId} {
+      allow read, write: if isAdmin();
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    // Market rates — read-only for users
+    match /marketRates/{docId} {
+      allow read, write: if isAdmin();
+      allow read: if request.auth != null;
+    }
+
+    // Subscription plans — read-only for users
+    match /subscriptionPlans/{docId} {
+      allow read, write: if isAdmin();
+      allow read: if request.auth != null;
+    }
+
+    // ── Collector Notifications ───────────────────────────────────
+    // Admin writes pickup assignment notifications; collectors read their own
+    match /collector_notifications/{collectorId} {
+      allow read, write: if isAdmin();
+      allow read: if request.auth != null && request.auth.uid == collectorId;
+
+      match /notifications/{notifId} {
+        allow read, write: if isAdmin();
+        allow read, update: if request.auth != null && request.auth.uid == collectorId;
+      }
+    }
+
+    // ── Auto-Assignment Collections ─────────────────────────────
+
+    // collectorAssign — written by admin dashboard automation engine
+    // Collectors can read & update their own assignment doc (for real-time listening)
+    match /collectorAssign/{assignId} {
+      allow read, write: if isAdmin();
+      allow read: if isCollector() && resource.data.collectorId == request.auth.uid;
+      allow update: if isCollector() && resource.data.collectorId == request.auth.uid;
+    }
+
+    // collectorLocations — written by collectors, read by any authenticated user (for live tracking)
+    match /collectorLocations/{collectorId} {
+      allow read, write: if isAdmin();
+      allow read: if request.auth != null;  // Users need this for live tracking
+      // Collectors can write their own location
+      allow write: if request.auth != null && request.auth.uid == collectorId;
+    }
+
+    // assignmentArchive — admin only (post-completion permanent record)
+    match /assignmentArchive/{assignId} {
+      allow read, write: if isAdmin();
+    }
+
+    // ── NEW: Collector App Specifics (Earnings & Transactions) ──
+    
+    // Earnings overview document
+    match /earnings/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId; // Collectors/users view their own
+      allow write: if isAdmin(); // Admin dashboard handles updates/payouts
+      
+      // Withdrawals/Transaction items sub-collection
+      match /transactions/{transactionId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if isAdmin(); 
+      }
+    }
+  }
+}

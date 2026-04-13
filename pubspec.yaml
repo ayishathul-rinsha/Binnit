@@ -1,0 +1,55 @@
+name: waste_collector
+description: "A waste collector app for pickup management and earnings tracking."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # State Management
+  provider: ^6.1.2
+  
+  # HTTP & API
+  http: ^1.6.0
+  
+  # Local Storage
+  shared_preferences: ^2.2.2
+  
+  # Location & Maps
+  geolocator: ^12.0.0
+  flutter_map: ^8.2.2
+  latlong2: ^0.9.1
+  geocoding: ^4.0.0
+  
+  # Utilities
+  url_launcher: ^6.2.4
+  image_picker: ^1.0.7
+  intl: ^0.20.2
+  google_fonts: ^6.1.0
+  permission_handler: ^11.3.0
+  
+  # Firebase
+  firebase_core: ^2.27.0
+  firebase_auth: ^4.17.8
+  cloud_firestore: ^4.15.8
+  firebase_storage: ^11.6.0
+  google_sign_in: ^6.1.6
+  
+  # Localization
+  flutter_localizations:
+    sdk: flutter
+
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
