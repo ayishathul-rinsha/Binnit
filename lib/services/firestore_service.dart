@@ -106,7 +106,7 @@ class FirestoreService {
     return _db
         .collection('pickupRequests')
         .where('userId', isEqualTo: _uid)
-        .where('status', whereIn: ['PENDING', 'ASSIGNED', 'ACCEPTED', 'ON_THE_WAY', 'REACHED'])
+        .where('status', whereIn: ['PENDING', 'BROADCASTING', 'ASSIGNED', 'ACCEPTED', 'ON_THE_WAY', 'REACHED'])
         .orderBy('date')
         .limit(5)
         .snapshots();

@@ -573,7 +573,7 @@ class _PickupTrackingScreenState extends State<PickupTrackingScreen>
   }
 
   Widget _buildPendingBanner(String status) {
-    final isPending = status == 'pending' || status == 'submitted';
+    final isPending = status == 'pending' || status == 'submitted' || status == 'broadcasting';
     final statusLabel = isPending ? 'Awaiting Collector' : 'Request ${status[0].toUpperCase()}${status.substring(1)}';
     final statusIcon = isPending ? Icons.hourglass_top_rounded : Icons.check_circle_outline_rounded;
     final statusColor = isPending ? const Color(0xFFFF9800) : const Color(0xFF4CAF50);
@@ -639,14 +639,14 @@ class _PickupTrackingScreenState extends State<PickupTrackingScreen>
 
   Widget _buildTrackingTimeline(String status, bool collectorAssigned) {
     // Status progression: pending → assigned → accepted → on_the_way → reached → picked_up → completed
-    const statusOrder = ['pending', 'assigned', 'accepted', 'on_the_way', 'reached', 'picked_up', 'completed'];
+    const statusOrder = ['pending', 'broadcasting', 'assigned', 'accepted', 'on_the_way', 'reached', 'picked_up', 'completed'];
     final currentIndex = statusOrder.indexOf(status);
     
-    final isApprovedStatus = currentIndex >= 1; // assigned or beyond
-    final isAccepted = currentIndex >= 2;       // accepted or beyond
-    final isOnTheWay = currentIndex >= 3;       // on_the_way or beyond
-    final isReached = currentIndex >= 4;         // reached or beyond
-    final isCompleted = currentIndex >= 6;       // completed
+    final isApprovedStatus = currentIndex >= 2; // assigned or beyond
+    final isAccepted = currentIndex >= 3;       // accepted or beyond
+    final isOnTheWay = currentIndex >= 4;       // on_the_way or beyond
+    final isReached = currentIndex >= 5;         // reached or beyond
+    final isCompleted = currentIndex >= 7;       // completed
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),

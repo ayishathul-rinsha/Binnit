@@ -319,6 +319,7 @@ class _HistoryScreenState extends State<HistoryScreen>
           .where('userId', isEqualTo: _firestoreService.currentUserId)
           .where('status', whereIn: [
             'PENDING', 'pending',
+            'BROADCASTING', 'broadcasting',
             'ASSIGNED', 'assigned',
             'ACCEPTED', 'accepted',
             'ON_THE_WAY', 'on_the_way',
@@ -899,6 +900,8 @@ class _HistoryScreenState extends State<HistoryScreen>
     switch (status) {
       case 'PENDING':
         return _StatusInfo('Submitted', const Color(0xFFFB8C00), Icons.schedule_rounded);
+      case 'BROADCASTING':
+        return _StatusInfo('Searching...', const Color(0xFF10B981), Icons.radar_rounded);
       case 'ASSIGNED':
         return _StatusInfo('Assigned', const Color(0xFF2196F3), Icons.person_add_alt_1_rounded);
       case 'ACCEPTED':
