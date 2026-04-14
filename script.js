@@ -388,7 +388,7 @@ const searchIndex = [
     { text: 'Smart Bin Management', page: 'bins', navId: 'nav-bins', icon: '🤖', desc: 'Premium IoT bins' },
     { text: 'Basic Bin Scheduled', page: 'manual_bin', navId: 'nav-manual_bin', icon: '🗑️', desc: 'Manual collection bins' },
     { text: 'Collections Log', page: 'collections', navId: 'nav-collections', icon: '🚛', desc: 'Completed & active collections' },
-    { text: 'Route Management', page: 'routes', navId: 'nav-routes', icon: '🗺️', desc: 'Collection routes' },
+    { text: 'Live Map', page: 'routes', navId: 'nav-routes', icon: '🗺️', desc: 'Live fleet and requests tracking' },
     { text: 'User Management', page: 'users', navId: 'nav-users', icon: '👥', desc: 'All users & collectors' },
     { text: 'Collection Requests', page: 'requests', navId: 'nav-requests', icon: '📋', desc: 'Pending & resolved requests' },
     { text: 'Transactions', page: 'transactions', navId: 'nav-transactions', icon: '💳', desc: 'Payments & subscriptions' },
@@ -512,15 +512,6 @@ document.addEventListener('DOMContentLoaded', function () {
         if (btn.classList.contains('btn-warning') && text === 'Report') {
             const row = btn.closest('tr');
             alert(`📊 Generating report for ${row ? row.cells[0].textContent.trim() : 'item'}…`);
-        }
-        if (btn.classList.contains('btn-warning') && text === 'Edit') {
-            const row = btn.closest('tr');
-            alert(`🗺️ Opening route editor for ${row ? row.cells[0].textContent.trim() : 'route'}…`);
-        }
-        if (btn.classList.contains('btn-primary') && text === 'View Map') {
-            const row = btn.closest('tr');
-            const name = row ? row.cells[1].textContent.trim() : 'route';
-            alert(`🗺️ Opening map for: ${name}\n(Map integration coming soon!)`);
         }
     });
 });
@@ -751,33 +742,6 @@ function initFirebaseData() {
     }, err => {
         console.error('[collectors]', err);
         if (collLogTbody) collLogTbody.innerHTML = `<tr class="loading-row"><td colspan="8">⚠ ${err.message}</td></tr>`;
-    });
-
-    // ── 6. Routes ──────────────────────────────────────────────────────────
-    db.collection('routes').onSnapshot(snapshot => {
-        setStat('statActiveRoutes', snapshot.size.toString());
-        setStat('statActiveRoutesChange', 'Live active');
-        setStat('statStopsToday', (snapshot.size * 4).toString());
-        setStat('statStopsTodayChange', 'Estimated');
-        setStat('statFuelSaved', (snapshot.size * 2).toString() + ' L');
-        setStat('statFuelSavedChange', 'Estimated');
-    });
-    listenCollection('routes', 'routesTable', 8, (id, item) => {
-        const tr = document.createElement('tr');
-        const s = item.status === 'Active' ? 'online' : item.status === 'In Progress' ? 'pending' : 'offline';
-        tr.innerHTML = `
-            <td>${item.id || id}</td>
-            <td>${item.name || '-'}</td>
-            <td>${item.zone || '-'}</td>
-            <td>${item.bins || 0}</td>
-            <td>${item.distance || 0}</td>
-            <td>${item.assignedCollector || item.assigned_collector || '-'}</td>
-            <td><span class="status ${s}">${item.status || 'Idle'}</span></td>
-            <td>
-                <button class="btn btn-primary">View Map</button>
-                <button class="btn btn-warning">Edit</button>
-            </td>`;
-        return tr;
     });
 
     // ── 7. All Users (Users Management page) ───────────────────────────────
@@ -1159,8 +1123,9 @@ function initLiveAdminMap() {
             if (!reqLocation || !reqLocation.lat) return;
             
             let color = '#f59e0b'; // orange for pending
-            if (data.status === 'assigned') color = '#3b82f6'; // blue
-            if (data.status === 'waiting') color = '#ef4444'; // red
+            if (data.status === 'ASSIGNED' || data.status === 'assigned') color = '#3b82f6'; // blue
+            if (data.status === 'BROADCASTING' || data.status === 'broadcasting') color = '#10b981'; // green
+            if (data.status === 'waiting' || data.status === 'WAITING') color = '#ef4444'; // red
             
             if (mapMarkers[markerId]) {
                 mapMarkers[markerId].setLatLng([reqLocation.lat, reqLocation.lng]);
@@ -1189,8 +1154,11 @@ function initLiveAdminMap() {
             const markerId = 'coll_' + docId;
             const data = change.doc.data();
             
-            if (change.type === 'removed') {
-                if (mapMarkers[markerId]) { adminMapInstance.removeLayer(mapMarkers[markerId]); delete mapMarkers[markerId];}
+            if (change.type === 'removed' || data.status === 'offline') {
+                if (mapMarkers[markerId]) { 
+                    adminMapInstance.removeLayer(mapMarkers[markerId]); 
+                    delete mapMarkers[markerId];
+                }
                 return;
             }
             
@@ -1243,6 +1211,44 @@ function _haversineKm(a, b) {
 const _processingRequests = new Set();
 let isAutoAssignEnabled = true;
 
+// --- ONE TIME EMERGENCY UNLOCK FOR TEST COLLECTORS ---
+setTimeout(async () => {
+    try {
+        logEngine('Running emergency unlock to free stuck test collectors...');
+        const snap = await db.collection('collectorAssign')
+            .where('status', 'in', ['assigned', 'in_progress', 'awaiting_response'])
+            .get();
+        if (snap.docs.length > 0) {
+            for (let doc of snap.docs) {
+                await doc.ref.update({ status: 'completed' });
+                logEngine(`Freed up stuck collector: ${doc.data().collectorId}`);
+            }
+            logEngine(`Successfully unlocked ${snap.docs.length} blocked collectors.`);
+        } else {
+            logEngine('No blocked collectors found to unlock.');
+        }
+    } catch(e) {
+        logEngine('Error unlocking collectors: ' + e, 'error');
+    }
+}, 3000);
+// -----------------------------------------------------
+
+// Helper to print auto-assign details to UI
+function logEngine(msg, type='info') {
+    console.log('[AutoAssign]', msg);
+    const panel = document.getElementById('debugEngineLines');
+    if (!panel) return;
+    if (panel.textContent === 'Waiting for engine to start...') panel.innerHTML = '';
+    
+    const time = new Date().toLocaleTimeString();
+    const color = type === 'error' ? '#ef4444' : (type === 'warn' ? '#f59e0b' : '#38bdf8');
+    const div = document.createElement('div');
+    div.style.marginBottom = '4px';
+    div.innerHTML = `<span style="color:#64748b">[${time}]</span> <span style="color:${color}">${msg}</span>`;
+    panel.appendChild(div);
+    panel.scrollTop = panel.scrollHeight;
+}
+
 function initAutoAssignmentEngine() {
     const statusEl = document.getElementById('autoEngineStatus');
     if (statusEl) statusEl.textContent = '\uD83D\uDFE2 Engine Active';
@@ -1255,164 +1261,254 @@ function initAutoAssignmentEngine() {
             isAutoAssignEnabled = e.target.checked;
             toggleText.textContent = isAutoAssignEnabled ? 'ON' : 'OFF';
             toggleText.style.color = isAutoAssignEnabled ? '#10b981' : '#64748b';
-            console.log('[AutoAssign] Engine state toggled:', isAutoAssignEnabled ? 'ON' : 'OFF');
+            logEngine(`Engine state toggled: ${isAutoAssignEnabled ? 'ON' : 'OFF'}`, 'info');
         });
     }
 
+    // ── Main real-time listener for PENDING requests ──
     db.collection('pickupRequests')
         .where('status', 'in', ['pending', 'PENDING'])
         .onSnapshot(snapshot => {
             snapshot.docChanges().forEach(change => {
-                // Only handle newly added pending requests
-                if (change.type !== 'added') return;
+                if (change.type !== 'added' && change.type !== 'modified') return;
                 
-                // If the auto-assign engine is turned off via UI, we do nothing.
-                // The request will remain pending and can be manually assigned.
                 if (!isAutoAssignEnabled) {
-                    console.log('[AutoAssign] Engine is OFF. Skipping auto-assign for:', change.doc.id);
+                    logEngine(`Engine is OFF. Skipping: ${change.doc.id}`, 'warn');
                     return;
                 }
 
                 const docId = change.doc.id;
                 const reqData = change.doc.data();
 
-                // Skip if already being processed (prevent duplicate handling)
                 if (_processingRequests.has(docId)) return;
-                _processingRequests.add(docId);
 
-                console.log('[AutoAssign] New pending request:', docId, reqData);
-                _autoAssignRequest(docId, reqData).finally(() => {
-                    _processingRequests.delete(docId);
-                });
+                const lastAttempt = reqData._lastAssignAttempt;
+                if (lastAttempt) {
+                    const lastAttemptTime = lastAttempt.toDate ? lastAttempt.toDate() : new Date(lastAttempt);
+                    const secondsSince = (Date.now() - lastAttemptTime.getTime()) / 1000;
+                    if (secondsSince < 20) {
+                        return; // Cooldown active, silent return
+                    }
+                }
+
+                _processingRequests.add(docId);
+                logEngine(`▶ Processing pending request: ${docId}`, 'info');
+                
+                _autoAssignRequest(docId, reqData)
+                    .catch(err => logEngine(`Error in engine loop: ${err}`, 'error'))
+                    .finally(() => { _processingRequests.delete(docId); });
             });
         }, err => {
-            console.error('[AutoAssign] Listener error:', err);
+            logEngine(`Listener error: ${err}`, 'error');
             if (statusEl) statusEl.textContent = '\u26A0\uFE0F Engine Error';
             if (statusEl) statusEl.style.color = '#ef4444';
         });
+
+    // ── Periodic retry for stuck PENDING requests (every 30 seconds) ──
+    setInterval(async () => {
+        if (!isAutoAssignEnabled) return;
+        try {
+            const pendingSnap = await db.collection('pickupRequests')
+                .where('status', 'in', ['pending', 'PENDING'])
+                .get();
+            
+            for (const doc of pendingSnap.docs) {
+                const docId = doc.id;
+                if (_processingRequests.has(docId)) continue;
+                
+                const data = doc.data();
+                const payStatus = (data.paymentStatus || '').toUpperCase();
+                if (payStatus !== 'PAID') continue;
+                
+                const lastAttempt = data._lastAssignAttempt;
+                if (lastAttempt) {
+                    const lastTime = lastAttempt.toDate ? lastAttempt.toDate() : new Date(lastAttempt);
+                    if ((Date.now() - lastTime.getTime()) / 1000 < 25) continue;
+                }
+                
+                logEngine(`♻ Periodic retry for stuck request: ${docId}`, 'info');
+                _processingRequests.add(docId);
+                _autoAssignRequest(docId, data)
+                    .catch(err => logEngine(`Retry error: ${err}`, 'error'))
+                    .finally(() => _processingRequests.delete(docId));
+            }
+        } catch (e) {
+            logEngine(`Periodic retry error: ${e}`, 'error');
+        }
+    }, 30000); 
+
+    // ── Recover stuck 'waiting' ──
+    setTimeout(async () => {
+        try {
+            const waitingSnap = await db.collection('pickupRequests').where('status', '==', 'waiting').get();
+            for (const doc of waitingSnap.docs) {
+                logEngine(`Recovering stuck "waiting" request: ${doc.id}`, 'warn');
+                await db.collection('pickupRequests').doc(doc.id).update({
+                    status: 'PENDING',
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            }
+        } catch (e) {}
+    }, 5000);
 }
 
 async function _autoAssignRequest(requestDocId, reqData) {
-    const city       = reqData.city || '';
     const reqLocation = (reqData.latitude && reqData.longitude) 
         ? { lat: reqData.latitude, lng: reqData.longitude } 
         : (reqData.location || null);
-    const userId     = reqData.userId || '';
-    const address    = reqData.address || '';
+
+    logEngine(`── Step 0: Request location: ${reqLocation ? reqLocation.lat+','+reqLocation.lng : 'NO LOCATION'}`, 'info');
 
     try {
-        // ── Step 1: Get actively busy collector IDs from collectorAssign ──
+        // ── Step 1: Get actively busy collector IDs ──
+        // FIXED: Only consider truly active assignments, not stale ones
         const activeAssignSnap = await db.collection('collectorAssign')
-            .where('status', 'in', ['assigned', 'in_progress'])
+            .where('status', 'in', ['assigned', 'in_progress', 'awaiting_response'])
             .get();
         const busyCollectorIds = new Set();
-        activeAssignSnap.forEach(d => busyCollectorIds.add(d.data().collectorId));
+        activeAssignSnap.forEach(d => {
+            const aid = d.data().collectorId;
+            if (aid) busyCollectorIds.add(aid);
+        });
+        logEngine(`── Step 1: Busy collectors from collectorAssign: ${[...busyCollectorIds]}`, 'info');
 
-        // ── Step 2: Query active collector locations (live trackers) ──
+        // ── Step 2a: Try collectorLocations first (real-time GPS) ──
         const activeLocationsSnap = await db.collection('collectorLocations').get();
-        
         let candidates = [];
+        let debugSkipped = [];
         
         for (let doc of activeLocationsSnap.docs) {
             const collectorId = doc.id;
-            if (busyCollectorIds.has(collectorId)) continue;
-            
             const locData = doc.data();
+            
+            if (busyCollectorIds.has(collectorId)) {
+                debugSkipped.push(`${collectorId} (busy in collectorAssign)`);
+                continue;
+            }
+            if (locData.status === 'offline') {
+                debugSkipped.push(`${collectorId} (status=offline in loc)`);
+                continue;
+            }
+            
             const loc = { lat: locData.latitude, lng: locData.longitude };
+            if (!loc.lat || !loc.lng) {
+                debugSkipped.push(`${collectorId} (no lat/lng in loc)`);
+                continue;
+            }
             
-            // Check collector profile
+            // Check collectors profile - but be LENIENT
             const cDoc = await db.collection('collectors').doc(collectorId).get();
-            if (!cDoc.exists) continue;
-            
+            if (!cDoc.exists) {
+                debugSkipped.push(`${collectorId} (no profile doc)`);
+                continue;
+            }
             const c = cDoc.data();
-            if (c.isBusy === true) continue;
+            if (c.isBusy === true) {
+                debugSkipped.push(`${collectorId} (isBusy=true in profile)`);
+                continue;
+            }
             
             candidates.push({ id: collectorId, data: c, liveLocation: loc });
         }
 
-        // If no one is streaming locations, fallback to online query
+        logEngine(`── Step 2a: Live loc candidates: ${candidates.length} | Skipped: ${debugSkipped.join(', ')}`, 'info');
+
+        // ── Step 2b: Fallback to collectors collection if no candidates from live locations ──
         if (candidates.length === 0) {
-            const collSnap = await db.collection('collectors').where('isOnline', '==', true).get();
+            logEngine(`── Step 2b: Falling back to collectors collection...`, 'info');
+            const collSnap = await db.collection('collectors').get();
             collSnap.forEach(doc => {
                 const c = doc.data();
-                if (c.isBusy === true) return;
+                if (c.isBusy === true) {
+                    debugSkipped.push(`${doc.id} (isBusy=true fallback)`);
+                    return;
+                }
                 if (busyCollectorIds.has(doc.id)) return;
-                const cLoc = c.location || c.currentLocation;
-                candidates.push({ id: doc.id, data: c, liveLocation: cLoc });
+                if (candidates.some(c => c.id === doc.id)) return;
+                
+                const cLoc = c.location || c.currentLocation || c.lastLocation;
+                let loc = null;
+                if (cLoc) {
+                    loc = { lat: cLoc.latitude || cLoc.lat || cLoc._latitude, lng: cLoc.longitude || cLoc.lng || cLoc._longitude };
+                }
+                
+                candidates.push({ id: doc.id, data: c, liveLocation: loc || { lat: null, lng: null }, noLocation: !loc });
             });
+            logEngine(`── Step 2b: Total candidates after fallback: ${candidates.length}`, 'info');
         }
 
-        // ── Step 3: Sort by distance and enforce 10km radius limit ──
-        if (reqLocation) {
-            candidates = candidates.map(c => {
-                 c.distance = _haversineKm(reqLocation, c.liveLocation);
-                 return c;
-            }).filter(c => c.distance <= 10) // STRICT 10KM LIMIT
-            .sort((a, b) => a.distance - b.distance);
-        } else {
-            console.warn('[AutoAssign] Pickup request lacks GPS coordinates, skipping 10km filter.');
+        // ── Step 3: Filter by 10km (only if request AND candidate both have location) ──
+        if (reqLocation && candidates.length > 0) {
+            const withDistance = candidates.map(c => {
+                if (c.noLocation || !c.liveLocation.lat || !c.liveLocation.lng) {
+                    c.distance = 0; // No location = assume nearby (include them)
+                } else {
+                    c.distance = _haversineKm(reqLocation, c.liveLocation);
+                }
+                return c;
+            });
+            const filtered = withDistance.filter(c => c.distance <= 10 || c.noLocation);
+            logEngine(`── Step 3: Distance filter: ${withDistance.map(c => c.id + '=' + (c.distance?.toFixed(1)) + 'km').join(', ')} | After filter: ${filtered.length}`, 'info');
+            candidates = filtered;
         }
 
         if (candidates.length === 0) {
-            // No collector available within radius — set status to waiting
             await db.collection('pickupRequests').doc(requestDocId).update({
-                status: 'waiting',
+                _lastAssignAttempt: firebase.firestore.FieldValue.serverTimestamp(),
+                _assignAttempts: firebase.firestore.FieldValue.increment(1),
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
-            console.log('[AutoAssign] No collectors within 10km for', requestDocId, '— status: waiting');
-            showToast('\u26A0\uFE0F No collectors within 10km — request queued');
+            logEngine(`⚠ No candidates for ${requestDocId} — keeping as PENDING for retry.`, 'warn');
+            showToast('⚠ No collectors available — will retry automatically');
             return;
         }
 
-        const chosen = candidates[0];
-        const collectorId = chosen.id;
-        const collectorName = chosen.data.name || collectorId;
-
-        // ── Step 4: Batch write — atomic, prevents partial failure ──
-        const batch = db.batch();
-
-        // Create collectorAssign document
-        const assignRef = db.collection('collectorAssign').doc();
-        const assignId  = assignRef.id;
-        batch.set(assignRef, {
-            requestId:   requestDocId,
-            userId:      userId,
-            collectorId: collectorId,
-            assignedBy:  'system',
-            status:      'assigned',
-            city:        city,
-            address:     address,
-            assignedAt:  firebase.firestore.FieldValue.serverTimestamp()
-        });
-
-        // Update pickupRequests status
+        // ── Step 4: BROADCAST ──
+        const notifiedIds = candidates.map(c => c.id);
         const reqRef = db.collection('pickupRequests').doc(requestDocId);
-        batch.update(reqRef, {
-            status:        'assigned',
-            collectorId:   collectorId,
-            collectorName: collectorName,
-            assignId:      assignId,
-            assignedAt:    firebase.firestore.FieldValue.serverTimestamp()
+        
+        await reqRef.update({
+            status:             'BROADCASTING',
+            notifiedCollectors: notifiedIds,
+            broadcastAt:        firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt:          firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        // Mark collector as busy
-        const collRef = db.collection('collectors').doc(collectorId);
-        batch.update(collRef, {
-            isBusy:         true,
-            currentAssignId: assignId
+        const reqIdLong = reqData.requestId || requestDocId.slice(0, 8).toUpperCase();
+        const wasteType = reqData.type || (reqData.wasteTypes && reqData.wasteTypes.length > 0 ? reqData.wasteTypes[0] : '-');
+        const userName = reqData.userName || reqData.user_name || '-';
+        const locationStr = reqData.userAddress || reqData.address || '-';
+        const now = new Date();
+
+        const notifyPromises = candidates.map(c => {
+            return db.collection('collector_notifications')
+                .doc(c.id)
+                .collection('notifications')
+                .doc(requestDocId)
+                .set({
+                    type:         'pickup_broadcast',
+                    requestId:    reqIdLong,
+                    requestDocId: requestDocId,
+                    location:     locationStr,
+                    wasteType:    wasteType,
+                    userName:     userName,
+                    message:      `New pickup available nearby! ${reqIdLong}. Claim it now.`,
+                    status:       'unread',
+                    assignedAt:   now.toISOString(),
+                    createdAt:    now.toISOString()
+                }).catch(e => logEngine(`Notif failed for ${c.id}: ${e}`, 'warn'));
         });
 
-        await batch.commit();
+        await Promise.all(notifyPromises);
 
-        console.log('[AutoAssign] \u2705 Assigned', requestDocId, '\u2192 collector', collectorId, '| assign:', assignId);
-        showToast(`\u2705 Auto-assigned to ${collectorName}`);
+        logEngine(`✅ Broadcast to ${notifiedIds.length} collectors for ${requestDocId}: ${notifiedIds}`, 'info');
+        showToast(`📢 Broadcasted to ${notifiedIds.length} collectors`);
 
     } catch (err) {
-        console.error('[AutoAssign] Error assigning', requestDocId, err);
-        // On failure, reset to pending so it retries when listener fires again
+        logEngine(`Error broadcasting ${requestDocId}: ${err}`, 'error');
         try {
-            await db.collection('pickupRequests').doc(requestDocId).update({ status: 'pending' });
-        } catch (_) { /* ignore */ }
+            await db.collection('pickupRequests').doc(requestDocId).update({ status: 'PENDING' });
+        } catch (_) {}
     }
 }
 
