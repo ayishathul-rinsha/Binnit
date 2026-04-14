@@ -4,6 +4,7 @@ import 'waste_category_model.dart';
 /// Enum representing pickup status
 enum PickupStatus {
   pending,
+  broadcasting,
   assigned,
   accepted,
   onTheWay,
@@ -18,6 +19,8 @@ extension PickupStatusExtension on PickupStatus {
     switch (this) {
       case PickupStatus.pending:
         return 'Pending';
+      case PickupStatus.broadcasting:
+        return 'Searching for Collector';
       case PickupStatus.assigned:
         return 'Assigned';
       case PickupStatus.accepted:
@@ -36,7 +39,8 @@ extension PickupStatusExtension on PickupStatus {
   }
 
   bool get isActive {
-    return this == PickupStatus.assigned ||
+    return this == PickupStatus.broadcasting ||
+        this == PickupStatus.assigned ||
         this == PickupStatus.accepted ||
         this == PickupStatus.onTheWay ||
         this == PickupStatus.reached ||
@@ -48,6 +52,8 @@ extension PickupStatusExtension on PickupStatus {
     switch (this) {
       case PickupStatus.pending:
         return 'PENDING';
+      case PickupStatus.broadcasting:
+        return 'BROADCASTING';
       case PickupStatus.assigned:
         return 'ASSIGNED';
       case PickupStatus.accepted:
@@ -124,6 +130,8 @@ class PickupRequest {
     switch (str) {
       case 'PENDING':
         return PickupStatus.pending;
+      case 'BROADCASTING':
+        return PickupStatus.broadcasting;
       case 'ASSIGNED':
         return PickupStatus.assigned;
       case 'ACCEPTED':

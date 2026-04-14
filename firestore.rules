@@ -128,6 +128,7 @@ service cloud.firestore {
     // Collectors can read & update their own assignment doc (for real-time listening)
     match /collectorAssign/{assignId} {
       allow read, write: if isAdmin();
+      allow create: if isCollector() && request.resource.data.collectorId == request.auth.uid;
       allow read: if isCollector() && resource.data.collectorId == request.auth.uid;
       allow update: if isCollector() && resource.data.collectorId == request.auth.uid;
     }

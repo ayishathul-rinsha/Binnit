@@ -79,7 +79,6 @@ class _PickupRequestsScreenState extends State<PickupRequestsScreen> {
                   pickup: request,
                   onAccept: () => _acceptPickup(request.id),
                   onReject: () => _rejectPickup(request.id),
-                  onTimerExpired: () => _autoReject(request.id),
                 );
               },
             ),
@@ -153,20 +152,6 @@ class _PickupRequestsScreenState extends State<PickupRequestsScreen> {
       }
     }
   }
-
-  Future<void> _autoReject(String pickupId) async {
-    if (!mounted) return;
-    await PickupService.collectorRejectPickup(pickupId);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context).timeExpired),
-          backgroundColor: AppColors.error,
-        ),
-      );
-      _loadRequests();
-    }
-  }
 }
 
 /// Card for an admin-assigned pickup with countdown timer
@@ -174,13 +159,10 @@ class _AssignedPickupCard extends StatefulWidget {
   final PickupRequest pickup;
   final VoidCallback onAccept;
   final VoidCallback onReject;
-  final VoidCallback onTimerExpired;
-
   const _AssignedPickupCard({
     required this.pickup,
     required this.onAccept,
     required this.onReject,
-    required this.onTimerExpired,
   });
 
   @override
@@ -211,7 +193,9 @@ class _AssignedPickupCardState extends State<_AssignedPickupCard> {
 
     if (diff.isNegative) {
       _timer?.cancel();
-      widget.onTimerExpired();
+      if (mounted) {
+        setState(() => _remaining = Duration.zero);
+      }
     } else {
       if (mounted) {
         setState(() {
@@ -264,29 +248,30 @@ class _AssignedPickupCardState extends State<_AssignedPickupCard> {
             Row(
               children: [
                 // Countdown badge
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: _timerColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(AppDimens.radiusS),
-                    border: Border.all(color: _timerColor.withOpacity(0.5)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.timer, size: 16, color: _timerColor),
-                      const SizedBox(width: 4),
-                      Text(
-                        _timerText,
-                        style: TextStyle(
-                          color: _timerColor,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14,
+                if (widget.pickup.status != PickupStatus.pending)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: _timerColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(AppDimens.radiusS),
+                      border: Border.all(color: _timerColor.withOpacity(0.5)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.timer, size: 16, color: _timerColor),
+                        const SizedBox(width: 4),
+                        Text(
+                          _timerText,
+                          style: TextStyle(
+                            color: _timerColor,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
                 const Spacer(),
                 // Category badge
                 Container(

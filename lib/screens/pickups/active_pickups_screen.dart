@@ -235,7 +235,17 @@ class _ActivePickupsScreenState extends State<ActivePickupsScreen> {
 
     if (!mounted) return;
     final provider = Provider.of<PickupProvider>(context, listen: false);
-    final success = await provider.updatePickupStatus(pickupId, status, proofPhotoUrl: proofUrl);
+
+    bool success = false;
+    if (status == PickupStatus.accepted) {
+      success = await provider.acceptPickup(pickupId);
+      if (success) {
+        // Refresh after accept to fetch updated list
+        await provider.fetchActivePickups();
+      }
+    } else {
+      success = await provider.updatePickupStatus(pickupId, status, proofPhotoUrl: proofUrl);
+    }
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -498,6 +508,7 @@ class _StatusUpdateButton extends StatelessWidget {
 
   PickupStatus? get _nextStatus {
     switch (currentStatus) {
+      case PickupStatus.broadcasting:
       case PickupStatus.assigned:
         return PickupStatus.accepted;
       case PickupStatus.accepted:
@@ -516,6 +527,8 @@ class _StatusUpdateButton extends StatelessWidget {
   String _buttonText(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     switch (currentStatus) {
+      case PickupStatus.broadcasting:
+        return 'Claim Pickup Request';
       case PickupStatus.assigned:
         return 'Accept Pickup';
       case PickupStatus.accepted:
@@ -533,6 +546,7 @@ class _StatusUpdateButton extends StatelessWidget {
 
   IconData get _buttonIcon {
     switch (currentStatus) {
+      case PickupStatus.broadcasting:
       case PickupStatus.assigned:
         return Icons.check_circle_outline;
       case PickupStatus.accepted:

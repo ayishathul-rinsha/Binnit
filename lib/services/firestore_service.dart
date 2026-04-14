@@ -1,5 +1,6 @@
 // Removed dart:io since we use flutter/foundation for cross-platform now
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import '../models/models.dart';
@@ -136,64 +137,183 @@ class FirestoreService {
   }
 
   static Future<List<PickupRequest>> getAssignedPickups(String collectorId) async {
-    final snapshot = await _db
+    // 1. Explicitly assigned to this collector
+    final explicitlyAssignedSnap = await _db
         .collection('pickupRequests')
         .where('collectorId', isEqualTo: collectorId)
         .where('status', whereIn: ['ASSIGNED', 'assigned'])
         .get();
 
-    final results = snapshot.docs.map((doc) {
-      return PickupRequest.fromJson({...doc.data(), 'id': doc.id});
-    }).toList();
-    // Sort client-side to avoid composite index requirement
+    // 2. Broadcasted to this collector's group
+    final broadcastedSnap = await _db
+        .collection('pickupRequests')
+        .where('status', isEqualTo: 'BROADCASTING')
+        .get();
+
+    // 3. ANY pending+paid request (fallback when admin dashboard is not open)
+    //    This ensures collectors see requests even without the admin broadcasting them.
+    final pendingPaidSnap = await _db
+        .collection('pickupRequests')
+        .where('status', whereIn: ['PENDING', 'pending'])
+        .get();
+
+    // Deduplicate by doc ID
+    final Map<String, PickupRequest> resultMap = {};
+    for (final doc in explicitlyAssignedSnap.docs) {
+      resultMap[doc.id] = PickupRequest.fromJson({...doc.data(), 'id': doc.id});
+    }
+    for (final doc in broadcastedSnap.docs) {
+      final notified = doc.data()['notifiedCollectors'] as List?;
+      if (notified != null && notified.contains(collectorId)) {
+        resultMap[doc.id] = PickupRequest.fromJson({...doc.data(), 'id': doc.id});
+      }
+    }
+    for (final doc in pendingPaidSnap.docs) {
+      final data = doc.data();
+      // Only show paid pending requests (user has completed payment)
+      if (data['paymentStatus'] == 'PAID' || data['paymentStatus'] == 'paid') {
+        resultMap[doc.id] = PickupRequest.fromJson({...data, 'id': doc.id});
+      }
+    }
+
+    final results = resultMap.values.toList();
     results.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return results;
   }
 
   static Stream<List<PickupRequest>> assignedPickupsStream(String collectorId) {
-    return _db
-        .collection('pickupRequests')
-        .where('collectorId', isEqualTo: collectorId)
-        .where('status', whereIn: ['ASSIGNED', 'assigned'])
+    // Listen for ALL actionable pickups:
+    // 1. Explicitly assigned to this collector
+    // 2. Broadcasted to this collector's group
+    // 3. PENDING+PAID requests (fallback when admin dashboard isn't open)
+    return _db.collection('pickupRequests')
+        .where('status', whereIn: ['ASSIGNED', 'assigned', 'BROADCASTING', 'PENDING', 'pending'])
         .snapshots()
         .map((snapshot) {
-      final results = snapshot.docs.map((doc) {
-        return PickupRequest.fromJson({...doc.data(), 'id': doc.id});
-      }).toList();
-      results.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      return results;
-    });
+          final filtered = snapshot.docs.where((doc) {
+            final data = doc.data();
+            final status = data['status'];
+            final cId = data['collectorId'];
+            final notified = data['notifiedCollectors'] as List?;
+            
+            // Broadcasted to this collector
+            if (status == 'BROADCASTING' && notified != null && notified.contains(collectorId)) {
+               return true;
+            }
+            // Explicitly assigned to this collector
+            if ((status == 'ASSIGNED' || status == 'assigned') && cId == collectorId) {
+               return true;
+            }
+            // PENDING + PAID: show to ALL collectors as claimable
+            if ((status == 'PENDING' || status == 'pending')) {
+               final payStatus = data['paymentStatus'];
+               if (payStatus == 'PAID' || payStatus == 'paid') {
+                  return true;
+               }
+            }
+            return false;
+          });
+
+          final results = filtered.map((doc) {
+            return PickupRequest.fromJson({...doc.data(), 'id': doc.id});
+          }).toList();
+          results.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return results;
+        });
   }
 
-  /// Collector accepts an assigned pickup (ASSIGNED -> ACCEPTED)
+  /// Collector accepts an assigned or broadcasted pickup
+  /// Uses a transaction to ensure FCFS (First-Come First-Served) for broadcasted pickups.
   static Future<bool> collectorAcceptPickup(String pickupId) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return false;
+
+    final userRef = _db.collection('collectors').doc(uid);
+    final reqRef = _db.collection('pickupRequests').doc(pickupId);
+    final assignRef = _db.collection('collectorAssign').doc(pickupId);
+
     try {
-      await _db.collection('pickupRequests').doc(pickupId).update({
-        'status': PickupStatus.accepted.firestoreValue,
+      final success = await _db.runTransaction((transaction) async {
+        final snapshot = await transaction.get(reqRef);
+        if (!snapshot.exists) return false;
+
+        final data = snapshot.data()!;
+        final status = data['status'];
+        final currentCollector = data['collectorId'];
+
+        // If PENDING (paid), any collector can claim it
+        if (status == 'PENDING' || status == 'pending') {
+           if (currentCollector != null && currentCollector != uid) {
+             return false; // Already claimed by someone else
+           }
+        }
+        // If broadcasted, it MUST be unclaimed
+        else if (status == 'BROADCASTING') {
+           if (currentCollector != null && currentCollector != uid) {
+             return false; // Already claimed by someone else
+           }
+        } 
+        // If assigned, it MUST be assigned to ME
+        else if (status == 'ASSIGNED' || status == 'assigned') {
+           if (currentCollector != uid) return false;
+        } else {
+           return false; // Invalid status for acceptance
+        }
+
+        // Fetch collector name
+        final collSnap = await transaction.get(userRef);
+        final collName = collSnap.exists ? (collSnap.data()?['name'] ?? uid) : uid;
+
+        // 1. Update Request
+        transaction.update(reqRef, {
+          'status': 'ACCEPTED',
+          'collectorId': uid,
+          'collectorName': collName,
+          'acceptedAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+
+        // 2. Create/Merge collectorAssign for Admin Dashboard visibility
+        transaction.set(assignRef, {
+          'requestId':    pickupId,
+          'requestDocId': pickupId,
+          'collectorId':  uid,
+          'collectorName': collName,
+          'status':       'accepted',
+          'acceptedAt':   FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+
+        // 3. Mark collector as busy
+        transaction.update(userRef, {
+          'isBusy': true,
+          'currentAssignId': pickupId,
+        });
+
+        return true;
       });
 
-      // Notify the Admin web dashboard
-      await _db.collection('collectorAssign').doc(pickupId).set({
-        'status': 'accepted',
-      }, SetOptions(merge: true));
-      return true;
+      return success ?? false;
     } catch (e) {
+      debugPrint('Claim error: $e');
       return false;
     }
   }
 
-  /// Collector rejects an assigned pickup (ASSIGNED -> PENDING, remove collector)
+  /// Collector rejects an assigned/broadcasted pickup
   static Future<bool> collectorRejectPickup(String pickupId) async {
     try {
       await _db.collection('pickupRequests').doc(pickupId).update({
-        'status': PickupStatus.pending.firestoreValue,
+        'status': 'PENDING',
         'collectorId': FieldValue.delete(),
         'assignedAt': FieldValue.delete(),
+        'notifiedCollectors': FieldValue.delete(), // Stop broadcasting to everyone if one rejects? 
+        // Actually, usually we just remove the current user from the notified list.
       });
 
       // Notify the Admin web dashboard
       await _db.collection('collectorAssign').doc(pickupId).set({
         'status': 'rejected',
+        'rejectedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
       return true;
     } catch (e) {
@@ -253,23 +373,37 @@ class FirestoreService {
         // Award Eco Impact to user
         final doc = await _db.collection('pickupRequests').doc(pickupId).get();
         if (doc.exists) {
-          final data = doc.data()!;
-          final userId = data['userId'];
-          final weight = (data['weight'] ?? data['weightKg'] ?? data['estimatedWeight'] ?? 0.0).toDouble();
-          
-          if (userId != null && weight > 0) {
-            final int ecoPoints = (weight * 10).toInt(); // 10 points per Kg
-            final double co2Saved = weight * 2.5; // ~2.5 kg CO2 per kg recycled
-            final double treesEquivalent = co2Saved / 21.0; // ~21 kg CO2 per tree per year
-            
-            await _db.collection('users').doc(userId).update({
-              'ecoPoints': FieldValue.increment(ecoPoints),
-              'totalWasteRecycled': FieldValue.increment(weight),
-              'co2Saved': FieldValue.increment(co2Saved),
-              'treesEquivalent': FieldValue.increment(treesEquivalent),
-              'totalPickups': FieldValue.increment(1),
-            }).catchError((e) => debugPrint('Notice: Error updating eco impact: $e'));
-          }
+           final data = doc.data()!;
+           final userId = data['userId'];
+           final weight = (data['weight'] ?? data['weightKg'] ?? data['estimatedWeight'] ?? 0.0).toDouble();
+           final collectorId = data['collectorId']; // Usually present for completed pickups
+           
+           if (userId != null && weight > 0) {
+             final int ecoPoints = (weight * 10).toInt(); 
+             final double co2Saved = weight * 2.5; 
+             final double treesEquivalent = co2Saved / 21.0; 
+             
+             await _db.collection('users').doc(userId).update({
+               'ecoPoints': FieldValue.increment(ecoPoints),
+               'totalWasteRecycled': FieldValue.increment(weight),
+               'co2Saved': FieldValue.increment(co2Saved),
+               'treesEquivalent': FieldValue.increment(treesEquivalent),
+               'totalPickups': FieldValue.increment(1),
+             }).catchError((e) => debugPrint('Error updating user eco impact: $e'));
+           }
+
+           // IMPORTANT: Free up the collector to receive new auto-assignments!
+           if (collectorId != null) {
+              await _db.collection('collectors').doc(collectorId).update({
+                 'isBusy': false,
+                 'currentAssignId': FieldValue.delete(),
+              }).catchError((e) => debugPrint('Error freeing up collector: $e'));
+              
+              // Also sync collectorAssign so admin dashboard knows it's completed
+              await _db.collection('collectorAssign').doc(pickupId).set({
+                 'status': 'completed',
+              }, SetOptions(merge: true)).catchError((_) {});
+           }
         }
       }
 

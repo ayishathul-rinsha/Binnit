@@ -89,6 +89,11 @@ class LocationService {
         desiredAccuracy: LocationAccuracy.high,
       );
 
+      if (!_isTracking) {
+        debugPrint('[LOCATION] 🛑 Polled location discarded because tracking is stopped.');
+        return;
+      }
+
       debugPrint('[LOCATION] 📍 Polled: (${position.latitude}, ${position.longitude})');
 
       // Only push if location actually changed (avoid flooding Firestore)
